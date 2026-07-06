@@ -1,0 +1,26 @@
+{
+  "case_id": "tools.error",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "read missing",
+      "--permission-mode",
+      "bypassPermissions"
+    ],
+    "ts_argv": [
+      "-p",
+      "read missing",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "fixture": "alignment/fixtures/tool_error.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "text"
+  },
+  "policy": {
+    "match": "exact_stdout",
+    "golden_source": "ts-reference"
+  }
+}

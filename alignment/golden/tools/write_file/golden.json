@@ -1,0 +1,15 @@
+{
+  "case_id": "tools.write_file",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "Wrote the file.\n",
+  "files": [
+    {
+      "path": "out.txt",
+      "sha256": "03a076af909e703b7dace3992de56ca3df3860638b0cbb6d439556d3680bc5fb",
+      "text": "hello-written\n"
+    }
+  ]
+}

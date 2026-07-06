@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.single_turn",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "Hello from fixture.\n"
+}

@@ -1,0 +1,15 @@
+{
+  "case_id": "tools.multiedit_tool",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "Edited.\n",
+  "files": [
+    {
+      "path": "me.txt",
+      "sha256": "f6f24a11d7cbbbc6d9440aca2eba0f6498755ca90adea14c5e233bf4c04bd928",
+      "text": "foo bar baz\n"
+    }
+  ]
+}

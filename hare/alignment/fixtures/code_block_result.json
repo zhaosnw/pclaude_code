@@ -1,0 +1,10 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "Here is a Python example:\n\n```python\ndef greet(name):\n    return f\"Hello, {name}!\"\n\n\nprint(greet(\"world\"))\n```\n\nThat function returns a greeting string."}],
+      "usage": {"input_tokens": 12, "output_tokens": 30}
+    }
+  ]
+}

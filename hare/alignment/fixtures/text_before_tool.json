@@ -1,0 +1,39 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {
+          "type": "text",
+          "text": "Let me check the file."
+        },
+        {
+          "type": "tool_use",
+          "id": "t1",
+          "name": "Read",
+          "input": {
+            "file_path": "a.txt"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 18
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "Found it."
+        }
+      ],
+      "usage": {
+        "input_tokens": 85,
+        "output_tokens": 5
+      }
+    }
+  ]
+}

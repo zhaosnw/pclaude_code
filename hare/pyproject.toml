@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hare"
+version = "2.1.88"
+description = "Python port of Claude Code CLI (recovered from sourcemap v2.1.88)"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.80.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "pytest-timeout>=2.0",
+    "ruff>=0.8.0",
+    "mypy>=1.0",
+    "bandit>=1.7",
+    "build>=1.0",
+]
+test = ["pytest>=8.0", "pytest-asyncio>=0.24", "pytest-cov>=5.0", "pytest-timeout>=2.0"]
+
+[project.scripts]
+hare = "hare.entrypoints.cli:main"
+
+# Importable tree is ``hare/hare/…`` (inner ``hare`` package) so setuptools
+# discovers ``hare`` as a normal subfolder of this project directory.
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+markers = [
+    "asyncio: async test (needs pytest-asyncio)",
+    "unit: fast unit test — no network, no subprocess, no filesystem writes",
+    "integration: test that uses subprocesses, real filesystem, or network",
+    "slow: test that takes >5 seconds",
+    "alignment: behavioral test comparing hare output against TS reference",
+]
+
+[tool.ruff.lint]
+# Port-in-progress: many TS parity imports/variables aren't wired yet.
+# These are tracked for cleanup via detect_stubs / alignment_data, not lint.
+ignore = [
+    "F401",  # unused-import
+    "F841",  # unused-variable
+    "E402",  # module-import-not-at-top-of-file (lazy loading / circular import avoidance)
+]
+
+[tool.bandit]
+# Focus scanner on the shipped package; tests and build trees are excluded.
+exclude_dirs = ["tests", "build", "dist", ".git", ".venv"]

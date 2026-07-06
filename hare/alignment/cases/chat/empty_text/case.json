@@ -1,0 +1,19 @@
+{
+  "case_id": "chat.empty_text",
+  "priority": "P2",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "say nothing"
+    ]
+  },
+  "fixture": "alignment/fixtures/empty_text.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "text"
+  },
+  "policy": {
+    "match": "exact_stdout",
+    "golden_source": "ts-reference"
+  }
+}

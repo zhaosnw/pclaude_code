@@ -1,0 +1,13 @@
+{
+  "case_id": "cli.help",
+  "status": "ok",
+  "state": {"exit_code": 0},
+  "stdout_contains": [
+    "usage: hare",
+    "--version",
+    "-p PROMPT",
+    "--permission-mode",
+    "--output-format",
+    "[prompt ...]"
+  ]
+}

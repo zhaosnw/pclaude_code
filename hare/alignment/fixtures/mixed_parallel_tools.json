@@ -1,0 +1,44 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "t1",
+          "name": "Read",
+          "input": {
+            "file_path": "a.txt"
+          }
+        },
+        {
+          "type": "tool_use",
+          "id": "t2",
+          "name": "Bash",
+          "input": {
+            "command": "echo hi",
+            "description": "echo hi"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 45,
+        "output_tokens": 22
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "Read a.txt and ran echo hi."
+        }
+      ],
+      "usage": {
+        "input_tokens": 95,
+        "output_tokens": 9
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "case_id": "cli.version",
+  "status": "ok",
+  "state": {"exit_code": 0},
+  "stdout": "2.1.88 (Hare)\n"
+}

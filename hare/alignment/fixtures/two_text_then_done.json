@@ -1,0 +1,10 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "The cache stores recent results. It evicts the oldest entry when full. Would you like me to explain the eviction policy?"}],
+      "usage": {"input_tokens": 12, "output_tokens": 21}
+    }
+  ]
+}

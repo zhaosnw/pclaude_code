@@ -1,0 +1,76 @@
+<unknown>:167: SyntaxWarning: invalid escape sequence '\)'
+<unknown>:88: SyntaxWarning: invalid escape sequence '\('
+Validating imports in 1360 file(s)...
+  FAIL: from hare.utils.settings.settings_cache import reset_settings_cache
+         ImportError: cannot import name 'reset_settings_cache' from 'hare.utils.settings.settings_cache' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/settings/settings_cache.py). Did you mean: '_session_settings_cache'?
+  FAIL: from hare.utils.cleanup_registry import run_cleanup
+         ImportError: cannot import name 'run_cleanup' from 'hare.utils.cleanup_registry' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/cleanup_registry.py)
+  FAIL: from hare.utils.attachments import start_relevant_memory_prefetch
+         ImportError: cannot import name 'start_relevant_memory_prefetch' from 'hare.utils.attachments' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/attachments.py)
+  FAIL: from hare.services.skill_search import prefetch
+         ModuleNotFoundError: No module named 'hare.services.skill_search'
+  FAIL: from hare.services.skill_search import prefetch
+         ModuleNotFoundError: No module named 'hare.services.skill_search'
+  FAIL: from hare.tasks.local_main_session_task import LocalMainSessionTask
+         ImportError: cannot import name 'LocalMainSessionTask' from 'hare.tasks.local_main_session_task' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tasks/local_main_session_task.py)
+  FAIL: from hare.tools_impl.FileReadTool import FileReadTool
+         ImportError: cannot import name 'FileReadTool' from 'hare.tools_impl.FileReadTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/FileReadTool/__init__.py). Did you mean: 'file_read_tool'?
+  FAIL: from hare.tools_impl.FileWriteTool import FileWriteTool
+         ImportError: cannot import name 'FileWriteTool' from 'hare.tools_impl.FileWriteTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/FileWriteTool/__init__.py). Did you mean: 'file_write_tool'?
+  FAIL: from hare.tools_impl.FileEditTool import FileEditTool
+         ImportError: cannot import name 'FileEditTool' from 'hare.tools_impl.FileEditTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/FileEditTool/__init__.py). Did you mean: 'file_edit_tool'?
+  FAIL: from hare.tools_impl.GlobTool import GlobTool
+         ImportError: cannot import name 'GlobTool' from 'hare.tools_impl.GlobTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/GlobTool/__init__.py). Did you mean: 'glob_tool'?
+  FAIL: from hare.tools_impl.GrepTool import GrepTool
+         ImportError: cannot import name 'GrepTool' from 'hare.tools_impl.GrepTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/GrepTool/__init__.py). Did you mean: 'grep_tool'?
+  FAIL: from hare.tools_impl.BashTool import BashTool
+         ImportError: cannot import name 'BashTool' from 'hare.tools_impl.BashTool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/BashTool/__init__.py)
+  FAIL: from hare.services.api import create_api_client
+         ImportError: cannot import name 'create_api_client' from 'hare.services.api' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/services/api/__init__.py)
+  FAIL: from hare.utils.secure_storage.mac_os_keychain_helpers import get_macos_keychain_storage_service_name
+         ImportError: cannot import name 'get_macos_keychain_storage_service_name' from 'hare.utils.secure_storage.mac_os_keychain_helpers' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/secure_storage/mac_os_keychain_helpers.py)
+  FAIL: from hare.utils.auth import get_auth_token_source
+         ImportError: cannot import name 'get_auth_token_source' from 'hare.utils.auth' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/auth.py)
+  FAIL: from hare.utils.hare_in_chrome.common import CHROME_EXTENSION_ID
+         ModuleNotFoundError: No module named 'hare.utils.hare_in_chrome'
+  FAIL: from hare.utils.hare_in_chrome.setup import setup_chrome_native_host
+         ModuleNotFoundError: No module named 'hare.utils.hare_in_chrome'
+  FAIL: from hare.utils.model.model_capabilities import get_model_capability
+         ImportError: cannot import name 'get_model_capability' from 'hare.utils.model.model_capabilities' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/model/model_capabilities.py)
+  FAIL: from hare.utils.attachments import suppress_next_skill_listing
+         ImportError: cannot import name 'suppress_next_skill_listing' from 'hare.utils.attachments' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/attachments.py)
+  FAIL: from hare.utils.config import save_current_project_config
+         ImportError: cannot import name 'save_current_project_config' from 'hare.utils.config' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/config.py). Did you mean: 'get_current_project_config'?
+  FAIL: from hare.utils.user import get_git_email
+         ImportError: cannot import name 'get_git_email' from 'hare.utils.user' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/user.py)
+  FAIL: from hare.utils.git import is_git_repo
+         ImportError: cannot import name 'is_git_repo' from 'hare.utils.git' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/git/__init__.py)
+  FAIL: from hare.utils.git import find_git_root, get_current_branch
+         ImportError: cannot import name 'get_current_branch' from 'hare.utils.git' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/git/__init__.py)
+  FAIL: from hare.utils.task.framework import update_task_state
+         ImportError: cannot import name 'update_task_state' from 'hare.utils.task.framework' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/task/framework.py)
+  FAIL: from hare.services.remote_managed_settings.sync_cache import is_remote_managed_settings_eligible
+         ImportError: cannot import name 'is_remote_managed_settings_eligible' from 'hare.services.remote_managed_settings.sync_cache' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/services/remote_managed_settings/sync_cache.py)
+  FAIL: from hare.utils.permissions.permission_setup import parse_tool_list_from_cli
+         ImportError: cannot import name 'parse_tool_list_from_cli' from 'hare.utils.permissions.permission_setup' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/permissions/permission_setup.py)
+  FAIL: from hare.tools.agent_tool.agent_memory import is_agent_memory_path
+         ModuleNotFoundError: No module named 'hare.tools.agent_tool'; 'hare.tools' is not a package
+  FAIL: from hare.utils.model_strings import normalize_model_string_for_api
+         ModuleNotFoundError: No module named 'hare.utils.model_strings'
+  FAIL: from hare.utils.shell.shell_tool_utils import is_powershell_tool_enabled
+         ImportError: cannot import name 'is_powershell_tool_enabled' from 'hare.utils.shell.shell_tool_utils' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/shell/shell_tool_utils.py)
+  FAIL: from hare.tools_impl.PowerShellTool.powershell_tool import PowerShellTool
+         ImportError: cannot import name 'PowerShellTool' from 'hare.tools_impl.PowerShellTool.powershell_tool' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/tools_impl/PowerShellTool/powershell_tool.py)
+  FAIL: from hare.services.token_estimation import rough_token_count_estimation
+         ImportError: cannot import name 'rough_token_count_estimation' from 'hare.services.token_estimation' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/services/token_estimation.py)
+  FAIL: from hare.utils.auth import get_oauth_account_info
+         ImportError: cannot import name 'get_oauth_account_info' from 'hare.utils.auth' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/auth.py)
+  FAIL: from hare.constants.tools import COORDINATOR_MODE_ALLOWED_TOOLS
+         ImportError: cannot import name 'COORDINATOR_MODE_ALLOWED_TOOLS' from 'hare.constants.tools' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/constants/tools.py)
+  FAIL: from hare.services.mcp.utils import is_mcp_tool
+         ImportError: cannot import name 'is_mcp_tool' from 'hare.services.mcp.utils' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/services/mcp/utils.py)
+  FAIL: from hare.utils.auth import get_claude_ai_oauth_tokens, is_anthropic_auth_enabled
+         ImportError: cannot import name 'get_claude_ai_oauth_tokens' from 'hare.utils.auth' (/Users/midea/midea/claude_code/claude-code-recover-and-python-reset/hare/hare/utils/auth.py)
+
+Results: 1144 imports tested, 35 failures (max allowed: 50)
+WARNING: 35 import failures within allowed limit (50).

@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: hare
+Version: 2.1.88
+Summary: Python port of Claude Code CLI (recovered from sourcemap v2.1.88)
+Requires-Python: >=3.11
+Provides-Extra: anthropic
+Requires-Dist: anthropic>=0.80.0; extra == "anthropic"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.24; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: pytest-timeout>=2.0; extra == "dev"
+Requires-Dist: ruff>=0.8.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Requires-Dist: bandit>=1.7; extra == "dev"
+Requires-Dist: build>=1.0; extra == "dev"
+Provides-Extra: test
+Requires-Dist: pytest>=8.0; extra == "test"
+Requires-Dist: pytest-asyncio>=0.24; extra == "test"
+Requires-Dist: pytest-cov>=5.0; extra == "test"
+Requires-Dist: pytest-timeout>=2.0; extra == "test"

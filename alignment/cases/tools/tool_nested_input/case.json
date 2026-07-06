@@ -1,0 +1,11 @@
+{
+  "case_id": "tools.tool_nested_input",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run the command", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "run the command", "--dangerously-skip-permissions"]
+  },
+  "fixture": "alignment/fixtures/tool_nested_input.json",
+  "expected": {"exit_code": 0, "stdout_kind": "text"},
+  "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
+}

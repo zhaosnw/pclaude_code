@@ -1,0 +1,8 @@
+{
+  "case_id": "limits.max_turns",
+  "status": "error",
+  "state": {
+    "exit_code": 1
+  },
+  "stdout": "{\"type\":\"result\",\"subtype\":\"error_max_turns\",\"duration_ms\":29,\"duration_api_ms\":6,\"is_error\":true,\"num_turns\":2,\"stop_reason\":\"tool_use\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.00075,\"usage\":{\"input_tokens\":50,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":20,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-opus-4-8[1m]\":{\"inputTokens\":50,\"outputTokens\":20,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.00075,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"max_turns\",\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\",\"errors\":[\"Reached maximum number of turns (1)\"]}\n"
+}

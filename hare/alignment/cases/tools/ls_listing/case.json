@@ -1,0 +1,12 @@
+{
+  "case_id": "tools.ls_listing",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "list the files here", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "list the files here", "--dangerously-skip-permissions"]
+  },
+  "fixture": "alignment/fixtures/tool_ls_listing.json",
+  "fs": {"seed": ["ld1.txt", "sub/ld2.txt"]},
+  "expected": {"exit_code": 0, "stdout_kind": "text"},
+  "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
+}

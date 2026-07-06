@@ -1,0 +1,9 @@
+{
+  "case_id": "cli.bad_flag",
+  "status": "ok",
+  "state": {"exit_code": 2},
+  "stderr_contains": [
+    "usage: hare",
+    "error: unrecognized arguments: --no-such-flag"
+  ]
+}

@@ -1,0 +1,73 @@
+name: Release Gate
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release-gate:
+    name: "Release gate"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: hare/pyproject.toml
+
+      - name: Install deps
+        working-directory: hare
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Full test suite
+        working-directory: hare
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Lint + format check
+        working-directory: hare
+        run: |
+          ruff check hare/ tests/
+          ruff format --check hare/ tests/
+
+      - name: Import validation
+        working-directory: hare
+        run: python scripts/validate_imports.py
+
+      - name: Stub gate (priority)
+        working-directory: hare
+        run: python scripts/detect_stubs_priority.py --p0-fail
+
+      - name: Mypy regression
+        working-directory: hare
+        run: python scripts/check_mypy_regression.py --baseline 235
+
+      - name: Security scan
+        working-directory: hare
+        run: bandit -r hare/ --severity-level high --confidence-level high
+
+      - name: Build verification
+        working-directory: hare
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+          pip install dist/*.whl
+          python -c "import hare; print(f'hare {hare.__version__} OK')"
+          hare --version
+
+      - name: Freeze baseline
+        working-directory: hare
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          python scripts/freeze_baseline.py --tag "$TAG" --output ../baseline-${TAG}.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            hare/dist/*.whl
+            baseline-*.json

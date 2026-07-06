@@ -1,0 +1,8 @@
+{
+  "case_id": "cli.version",
+  "priority": "P0",
+  "kind": "deterministic",
+  "entrypoint": {"argv": ["--version"]},
+  "expected": {"exit_code": 0, "stdout_kind": "text"},
+  "policy": {"match": "exact_stdout", "golden_source": "self"}
+}

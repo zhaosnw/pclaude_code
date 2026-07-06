@@ -1,0 +1,10 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "Line one.\n\nLine two.\n- bullet a\n- bullet b"}],
+      "usage": {"input_tokens": 5, "output_tokens": 9}
+    }
+  ]
+}

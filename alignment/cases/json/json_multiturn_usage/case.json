@@ -1,0 +1,30 @@
+{
+  "case_id": "json.json_multiturn_usage",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "run the echo",
+      "--output-format",
+      "json",
+      "--permission-mode",
+      "bypassPermissions"
+    ],
+    "ts_argv": [
+      "-p",
+      "run the echo",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "fixture": "alignment/fixtures/json_multiturn_usage.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "match": "json_structural",
+    "golden_source": "ts-reference"
+  }
+}

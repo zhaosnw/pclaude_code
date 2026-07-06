@@ -1,0 +1,15 @@
+{
+  "case_id": "tools.write_tool_content",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "Created greet.txt with two lines.\n",
+  "files": [
+    {
+      "path": "greet.txt",
+      "sha256": "2751a3a2f303ad21752038085e2b8c5f98ecff61a2e4ebbd43506a941725be80",
+      "text": "line1\nline2\n"
+    }
+  ]
+}

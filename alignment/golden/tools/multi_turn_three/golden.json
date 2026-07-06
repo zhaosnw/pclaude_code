@@ -1,0 +1,8 @@
+{
+  "case_id": "tools.multi_turn_three",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "a.txt has AAA content and b.txt has BBB content.\n"
+}

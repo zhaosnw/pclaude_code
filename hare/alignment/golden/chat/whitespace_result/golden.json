@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.whitespace_result",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "   \n"
+}

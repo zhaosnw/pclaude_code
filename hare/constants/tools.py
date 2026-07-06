@@ -1,0 +1,22 @@
+"""
+Tool-related constants.
+
+Port of: src/constants/tools.ts
+"""
+
+MAX_TOOL_RESPONSE_LENGTH = 250_000
+MAX_TOOL_RESPONSE_LINES = 5000
+MAX_CONCURRENT_TOOL_CALLS = 8
+TOOL_TIMEOUT_MS = 120_000
+BASH_TOOL_TIMEOUT_MS = 300_000
+READ_TOOL_MAX_BYTES = 10_000_000
+
+# Tools allowed in coordinator mode (P2 — stub, will be populated from TS)
+COORDINATOR_MODE_ALLOWED_TOOLS: list[str] = [
+    "Read",
+    "Write",
+    "Edit",
+    "Bash",
+    "Glob",
+    "Grep",
+]

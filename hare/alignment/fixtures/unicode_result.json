@@ -1,0 +1,10 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "Greetings 🌟🚀 中文测试 café\tnaïve résumé — ✅ done."}],
+      "usage": {"input_tokens": 12, "output_tokens": 14}
+    }
+  ]
+}

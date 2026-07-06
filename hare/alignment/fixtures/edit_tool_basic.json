@@ -1,0 +1,17 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "Edit", "input": {"file_path": "edit_src.txt", "old_string": "world", "new_string": "there"}}
+      ],
+      "usage": {"input_tokens": 48, "output_tokens": 19}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "Edited the file."}],
+      "usage": {"input_tokens": 96, "output_tokens": 8}
+    }
+  ]
+}

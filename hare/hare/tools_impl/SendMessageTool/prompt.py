@@ -1,0 +1,57 @@
+"""Port of: src/tools/SendMessageTool/prompt.ts"""
+
+from __future__ import annotations
+
+SEND_MESSAGE_TOOL_NAME = "SendMessage"
+
+DESCRIPTION = "Send a message to another agent"
+
+
+def get_prompt(*, uds_inbox_enabled: bool = False) -> str:
+    uds_row = ""
+    if uds_inbox_enabled:
+        uds_row = (
+            '\n| `"uds:/path/to.sock"` | Local Hare session\'s socket (same machine; use `ListPeers`) |'
+            '\n| `"bridge:session_..."` | Remote Control peer session (cross-machine; use `ListPeers`) |'
+        )
+
+    uds_section = ""
+    if uds_inbox_enabled:
+        uds_section = """
+
+## Cross-session
+
+Use `ListPeers` to discover targets, then:
+
+```json
+{"to": "uds:/tmp/cc-socks/1234.sock", "message": "check if tests pass over there"}
+{"to": "bridge:session_01AbCd...", "message": "what branch are you on?"}
+```
+
+A listed peer is alive and will process your message \u2014 no "busy" state; messages enqueue and drain at the receiver's next tool round. Your message arrives wrapped as `<cross-session-message from="...">`. **To reply to an incoming message, copy its `from` attribute as your `to`.**"""
+
+    return f"""# SendMessage
+
+Send a message to another agent.
+
+```json
+{{"to": "researcher", "summary": "assign task 1", "message": "start on task #1"}}
+```
+
+| `to` | |
+|---|---|
+| `"researcher"` | Teammate by name |
+| `"*"` | Broadcast to all teammates \u2014 expensive (linear in team size), use only when everyone genuinely needs it |{uds_row}
+
+Your plain text output is NOT visible to other agents \u2014 to communicate, you MUST call this tool. Messages from teammates are delivered automatically; you don't check an inbox. Refer to teammates by name, never by UUID. When relaying, don't quote the original \u2014 it's already rendered to the user.{uds_section}
+
+## Protocol responses (legacy)
+
+If you receive a JSON message with `type: "shutdown_request"` or `type: "plan_approval_request"`, respond with the matching `_response` type \u2014 echo the `request_id`, set `approve` true/false:
+
+```json
+{{"to": "team-lead", "message": {{"type": "shutdown_response", "request_id": "...", "approve": true}}}}
+{{"to": "researcher", "message": {{"type": "plan_approval_response", "request_id": "...", "approve": false, "feedback": "add error handling"}}}}
+```
+
+Approving shutdown terminates your process. Rejecting plan sends the teammate back to revise. Don't originate `shutdown_request` unless asked. Don't send structured JSON status messages \u2014 use TaskUpdate."""

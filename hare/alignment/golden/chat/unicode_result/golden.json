@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.unicode_result",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "Greetings 🌟🚀 中文测试 café\tnaïve résumé — ✅ done.\n"
+}

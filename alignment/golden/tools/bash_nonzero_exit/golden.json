@@ -1,0 +1,8 @@
+{
+  "case_id": "tools.bash_nonzero_exit",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "command failed\n"
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.two_text_then_done",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "The cache stores recent results. It evicts the oldest entry when full. Would you like me to explain the eviction policy?\n"
+}

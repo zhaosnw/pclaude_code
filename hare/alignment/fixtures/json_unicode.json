@@ -1,0 +1,18 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "你好 👋 — café résumé"
+        }
+      ],
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 10
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.single_turn",
+  "priority": "P0",
+  "entrypoint": {"argv": ["-p", "say hello"]},
+  "fixture": "alignment/fixtures/single_turn_hello.json",
+  "expected": {"exit_code": 0, "stdout_kind": "text"},
+  "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
+}

@@ -1,0 +1,517 @@
+name: Hare CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'hare/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'pyproject.toml'
+      - 'pytest.ini'
+      - 'Makefile'
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'hare/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'pyproject.toml'
+      - 'pytest.ini'
+      - 'Makefile'
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================================================
+  # Stage 0 — Quick-fail checks (run first, cheapest)
+  # =========================================================================
+  lint-and-imports:
+    name: "Lint + Import validation (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Ruff lint
+        run: ruff check hare/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check hare/ tests/
+
+      - name: Validate all hare imports resolve
+        run: python scripts/validate_imports.py
+
+      - name: Detect stub/TODO/NotImplementedError count
+        run: python scripts/detect_stubs.py --max-stubs 200 --max-todos 500
+
+  # =========================================================================
+  # Stage 1 — Unit tests (fast, no network, no heavy deps)
+  # =========================================================================
+  unit-tests:
+    name: "Unit tests (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ \
+            -m "not integration and not slow and not alignment" \
+            -v \
+            --tb=short \
+            --strict-markers \
+            --timeout=60 \
+            --cov=hare \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-unit.xml \
+            --cov-fail-under=10
+
+      - name: Rename coverage data for unique artifact name
+        run: mv .coverage ".coverage-unit-py${{ matrix.python-version }}"
+
+      - name: Upload unit test coverage (Cobertura + raw data)
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: coverage-unit-py${{ matrix.python-version }}
+          path: |
+            coverage-unit.xml
+            .coverage-unit-py${{ matrix.python-version }}
+          if-no-files-found: ignore
+
+  # =========================================================================
+  # Stage 2 — Integration tests (may use real subprocesses, filesystem)
+  # =========================================================================
+  integration-tests:
+    name: "Integration tests (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/ \
+            -m "integration" \
+            -v \
+            --tb=long \
+            --strict-markers \
+            --timeout=120 \
+            --cov=hare \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-integration.xml \
+            --cov-append
+
+      - name: Rename coverage data for unique artifact name
+        run: mv .coverage ".coverage-integration-py${{ matrix.python-version }}"
+
+      - name: Upload integration test coverage (Cobertura + raw data)
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: coverage-integration-py${{ matrix.python-version }}
+          path: |
+            coverage-integration.xml
+            .coverage-integration-py${{ matrix.python-version }}
+          if-no-files-found: ignore
+
+  # =========================================================================
+  # Stage 2b — End-to-end CLI differential vs Claude Code (deterministic)
+  # Runs the real `python -m hare` CLI under fixture-replay (Layer A) and
+  # diffs against goldens recorded from the Claude Code reference. No network,
+  # no model billing — goldens are committed. Re-record with `make e2e-record`.
+  # =========================================================================
+  e2e-differential:
+    name: "E2E differential (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Run E2E differential suite
+        run: |
+          python -m pytest tests/e2e/ \
+            -v --tb=short --strict-markers --timeout=120
+
+  # =========================================================================
+  # Stage 3 — Behavioral alignment tests (query loop vs TS)
+  # =========================================================================
+  alignment-tests:
+    name: "TS ↔ Python alignment tests"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Verify alignment data integrity
+        run: python scripts/verify_alignment.py
+
+      - name: Run alignment-marked query tests
+        run: |
+          python -m pytest tests/ \
+            -m "alignment" \
+            -v --tb=long --strict-markers --timeout=120 \
+            --cov=hare \
+            --cov-report=xml:coverage-alignment.xml \
+            --cov-append
+
+      - name: Rename coverage data for unique artifact name
+        run: mv .coverage .coverage-alignment
+
+      - name: Upload alignment test coverage
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: coverage-alignment
+          path: |
+            coverage-alignment.xml
+            .coverage-alignment
+          if-no-files-found: ignore
+
+      - name: Check for regressions in done→partial/stub
+        run: python scripts/check_alignment_regressions.py
+
+  # =========================================================================
+  # Stage 3.5 — Phase 1 alignment advisory checks
+  # =========================================================================
+  alignment-advisory:
+    name: "Alignment advisory (Phase 1)"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Verify canonical alignment paths
+        run: python scripts/verify_alignment.py
+
+      - name: Run Phase 1 alignment tests
+        run: |
+          python -m pytest tests/test_alignment_normalize.py \
+            tests/test_alignment_compare.py \
+            tests/test_alignment_phase2.py \
+            tests/test_alignment_runner.py \
+            tests/test_alignment_scripts.py \
+            -v --tb=short --strict-markers
+
+      - name: Run minimal dual-side alignment flow
+        run: python scripts/run_alignment_phase2.py --priority P1
+
+      - name: Priority stub gate
+        run: python scripts/detect_stubs_priority.py
+
+      - name: Advisory size diff audit
+        run: python scripts/audit_sizediff.py --fail-on-priority P0,P1
+        continue-on-error: true
+
+      - name: Advisory P0/P1 coverage gate
+        run: python scripts/coverage_p0p1_gate.py --coverage-xml coverage-alignment.xml --min-line 0.0 --min-branch 0.0
+        continue-on-error: true
+
+  # =========================================================================
+  # Stage 4 — Type checking (advisory + regression gate)
+  # =========================================================================
+  type-check:
+    name: "Type check (mypy)"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+          pip install mypy types-setuptools
+
+      - name: Run mypy (advisory)
+        continue-on-error: true
+        run: |
+          mypy hare/ \
+            --ignore-missing-imports \
+            --show-error-codes \
+            --warn-unreachable
+
+      - name: Check mypy error regression (gate)
+        run: python scripts/check_mypy_regression.py --baseline 235
+
+  # =========================================================================
+  # Stage 4.5 — Alignment quick gate (P0 only)
+  # =========================================================================
+  alignment-quick:
+    name: "Alignment quick gate (P0)"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    continue-on-error: true  # advisory until stabilized
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: hare/pyproject.toml
+
+      - name: Install Python deps
+        working-directory: hare
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,anthropic]"
+
+      - name: Run Python oracle (P0)
+        working-directory: hare
+        run: |
+          python scripts/alignment_runner.py --priority P0 --out ../py-alignment.jsonl
+
+      - name: Compare and gate
+        run: |
+          python hare/scripts/compare_alignment.py \
+            --ts /dev/null --py py-alignment.jsonl \
+            --priority P0 \
+            --fail-under-p0 1.00 \
+            --report alignment-p0.json --md alignment-p0.md
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alignment-p0
+          path: |
+            py-alignment.jsonl
+            alignment-p0.json
+            alignment-p0.md
+          if-no-files-found: ignore
+
+  # =========================================================================
+  # Stage 4.6 — Priority-based stub detection
+  # =========================================================================
+  stub-priority:
+    name: "Stub detection by priority"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: P0 stub gate (fail on any P0 stubs)
+        working-directory: hare
+        run: python scripts/detect_stubs_priority.py --p0-fail
+
+      - name: Global stub audit
+        working-directory: hare
+        run: python scripts/detect_stubs_priority.py --max-nie 200 --max-todo 500
+
+  # =========================================================================
+  # Stage 5 — Security scan (high-severity + high-confidence gate)
+  # =========================================================================
+  security-scan:
+    name: "Security scan (bandit)"
+    runs-on: ubuntu-latest
+    needs: lint-and-imports
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit (gate on high severity + high confidence)
+        run: |
+          bandit -r hare/ \
+            --severity-level high \
+            --confidence-level high \
+            -f json -o bandit-report.json
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  # =========================================================================
+  # Stage 6 — Combined coverage report
+  # =========================================================================
+  coverage-report:
+    name: "Coverage report"
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, alignment-tests]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage
+
+      - name: Download all coverage artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage-files
+          merge-multiple: true
+
+      - name: Combine and report
+        run: |
+          set -euo pipefail
+          mkdir -p coverage-files
+          mapfile -t DATAS < <(find coverage-files -type f -name '.coverage*' 2>/dev/null | sort -u)
+          if [ "${#DATAS[@]}" -eq 0 ]; then
+            echo "No .coverage data files found (upstream jobs may have failed or skipped upload). Skipping combine."
+            exit 0
+          fi
+          echo "Combining: ${DATAS[*]}"
+          coverage combine "${DATAS[@]}"
+          coverage report --fail-under=12 --skip-covered
+          coverage html --skip-covered
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: coverage-html
+          path: htmlcov/
+
+  # =========================================================================
+  # Stage 7 — Build verification
+  # =========================================================================
+  build:
+    name: "Build verification"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Verify package builds and entrypoints
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+          pip install dist/*.whl
+          python -c "import hare; print(f'hare {hare.__version__} OK')"
+          hare --version

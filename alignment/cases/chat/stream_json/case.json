@@ -1,0 +1,22 @@
+{
+  "case_id": "chat.stream_json",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "say hello",
+      "--output-format",
+      "stream-json",
+      "--verbose"
+    ]
+  },
+  "fixture": "alignment/fixtures/single_turn_hello.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "ndjson"
+  },
+  "policy": {
+    "match": "json_structural",
+    "golden_source": "ts-reference"
+  }
+}

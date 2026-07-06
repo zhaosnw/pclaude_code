@@ -1,0 +1,32 @@
+{
+  "case_id": "tools.multi_turn_three",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "read a then b",
+      "--permission-mode",
+      "bypassPermissions"
+    ],
+    "ts_argv": [
+      "-p",
+      "read a then b",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "fixture": "alignment/fixtures/multi_turn_three.json",
+  "fs": {
+    "seed": [
+      "a.txt",
+      "b.txt"
+    ]
+  },
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "text"
+  },
+  "policy": {
+    "match": "exact_stdout",
+    "golden_source": "ts-reference"
+  }
+}

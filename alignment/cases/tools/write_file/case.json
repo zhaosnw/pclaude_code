@@ -1,0 +1,11 @@
+{
+  "case_id": "tools.write_file",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "write the file", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "write the file", "--dangerously-skip-permissions"]
+  },
+  "fixture": "alignment/fixtures/tool_write_file.json",
+  "expected": {"exit_code": 0, "stdout_kind": "text"},
+  "policy": {"match": "exact_stdout", "golden_source": "ts-reference", "check_files": true}
+}

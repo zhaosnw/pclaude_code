@@ -1,0 +1,8 @@
+{
+  "case_id": "chat.thinking",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "The answer is 42.\n"
+}

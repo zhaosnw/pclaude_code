@@ -1,0 +1,10 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "alpha\r\nbeta\ngamma\r"}],
+      "usage": {"input_tokens": 6, "output_tokens": 7}
+    }
+  ]
+}
