@@ -2,7 +2,7 @@
   "case_id": "module.history_parse",
   "priority": "P1",
   "modules": [
-    "hare/hare/history.py",
+    "hare/history.py",
     "history.ts"
   ],
   "description": "Module entrypoint executes a real python function",

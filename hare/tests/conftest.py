@@ -1,7 +1,7 @@
-"""Pytest bootstrap: ensure project dir is on sys.path for ``import hare``.
+"""Pytest bootstrap: ensure repo root is on sys.path for ``import hare``.
 
-The installable package lives in ``hare/hare/``; the parent directory (this
-folder that contains ``pyproject.toml``) must be on ``sys.path``.
+Nested ``hare/`` tests should exercise the canonical top-level ``hare/``
+package from the repo root, not the mirrored ``hare/hare/`` tree.
 
 Async tests use ``@pytest.mark.asyncio`` and require **pytest-asyncio**::
 
@@ -16,7 +16,7 @@ from pathlib import Path
 
 pytest_plugins = ("pytest_asyncio",)
 
-_ProjectRoot = Path(__file__).resolve().parents[1]
+_ProjectRoot = Path(__file__).resolve().parents[2]
 if str(_ProjectRoot) not in sys.path:
     sys.path.insert(0, str(_ProjectRoot))
 

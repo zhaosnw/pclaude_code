@@ -3,7 +3,7 @@
   "priority": "P1",
   "modules": [
     "query/tokenBudget.ts",
-    "hare/hare/query/token_budget.py"
+    "hare/query/token_budget.py"
   ],
   "description": "cost tracker check 1",
   "entrypoint": {

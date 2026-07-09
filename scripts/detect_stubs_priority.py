@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PY_PACKAGE_ROOT = PROJECT_ROOT / "hare" / "hare"
+PY_PACKAGE_ROOT = PROJECT_ROOT / "hare"
 ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 TODO_PATTERN = re.compile(r"#\s*(TODO|FIXME|HACK|XXX|STUB)\b", re.IGNORECASE)
@@ -30,7 +30,7 @@ def load_priority_map() -> dict[str, str]:
         if not isinstance(entry, dict):
             continue
         py_path = str(entry.get("py", ""))
-        if py_path and " | " not in py_path and py_path.startswith("hare/hare/"):
+        if py_path and " | " not in py_path and py_path.startswith("hare/"):
             priority_map[py_path] = str(entry.get("priority", ""))
     return priority_map
 

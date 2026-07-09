@@ -2,9 +2,9 @@
   "case_id": "config.env_expansion.home_and_project",
   "priority": "P0",
   "modules": [
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/entrypoints/cli.py",
-    "hare/hare/utils/settings/settings.py",
+    "hare/cli/structured_io.py",
+    "hare/entrypoints/cli.py",
+    "hare/utils/settings/settings.py",
     "utils/settings/settings.ts"
   ],
   "description": "Environment variable expansion resolves ${HOME} and ${PROJECT_DIR}",

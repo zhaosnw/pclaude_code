@@ -3,7 +3,7 @@
   "priority": "P2",
   "modules": [
     "Task.ts",
-    "hare/hare/task.py"
+    "hare/task.py"
   ],
   "description": "isTerminalTaskStatus correctly identifies terminal vs active statuses across all 5 statuses",
   "entrypoint": {

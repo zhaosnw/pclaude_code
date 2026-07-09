@@ -3,9 +3,9 @@
   "priority": "P0",
   "modules": [
     "cli/print.ts",
-    "hare/hare/cli/print_handler.py",
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/entrypoints/cli.py"
+    "hare/cli/print_handler.py",
+    "hare/cli/structured_io.py",
+    "hare/entrypoints/cli.py"
   ],
   "description": "CLI returns non-zero exit code on error (invalid output format)",
   "entrypoint": {

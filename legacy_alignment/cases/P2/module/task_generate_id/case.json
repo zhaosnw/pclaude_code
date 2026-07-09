@@ -3,7 +3,7 @@
   "priority": "P2",
   "modules": [
     "Task.ts",
-    "hare/hare/task.py"
+    "hare/task.py"
   ],
   "description": "generateTaskId produces correct prefix for each of the 7 task types",
   "entrypoint": {

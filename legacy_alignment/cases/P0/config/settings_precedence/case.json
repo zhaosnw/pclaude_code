@@ -2,9 +2,9 @@
   "case_id": "config.settings_precedence.user_project_env",
   "priority": "P0",
   "modules": [
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/entrypoints/cli.py",
-    "hare/hare/utils/settings/settings.py",
+    "hare/cli/structured_io.py",
+    "hare/entrypoints/cli.py",
+    "hare/utils/settings/settings.py",
     "utils/settings/settings.ts"
   ],
   "description": "Settings merge respects precedence: CLI flag > env > project > user > defaults",

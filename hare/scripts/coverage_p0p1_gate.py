@@ -29,7 +29,7 @@ def load_p0p1_modules(require_done: bool = True) -> set[str]:
         if require_done and entry.get("status") != "done":
             continue
         py_path = str(entry.get("py", ""))
-        if py_path.startswith("hare/hare/") and " | " not in py_path:
+        if py_path.startswith("hare/") and " | " not in py_path:
             modules.add(py_path)
     return modules
 
@@ -58,16 +58,9 @@ def parse_coverage(coverage_xml: Path) -> tuple[dict[str, dict[str, int]], bool]
             continue
         repo_relative = filename
         # Normalize coverage paths to canonical repo-root-relative form:
-        #   hare/hare/<module>.py  (what alignment_data.json rows use)
+        #   hare/<module>.py  (what alignment_data.json rows use)
         if not repo_relative.startswith("hare/"):
-            # Path from --cov=hare/hare  → bare like "commands.py"
-            # Path from --cov=hare      → "hare/commands.py"
-            if repo_relative.startswith("hare/"):
-                # "hare/commands.py" → "hare/hare/commands.py"
-                repo_relative = f"hare/{repo_relative}"
-            else:
-                # "commands.py" → "hare/hare/commands.py"
-                repo_relative = f"hare/hare/{repo_relative.lstrip('./')}"
+            repo_relative = f"hare/{repo_relative.lstrip('./')}"
 
         line_count = 0
         line_covered = 0

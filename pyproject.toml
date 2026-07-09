@@ -26,8 +26,7 @@ test = ["pytest>=8.0", "pytest-asyncio>=0.24", "pytest-cov>=5.0", "pytest-timeou
 [project.scripts]
 hare = "hare.entrypoints.cli:main"
 
-# Importable tree is ``hare/hare/…`` (inner ``hare`` package) so setuptools
-# discovers ``hare`` as a normal subfolder of this project directory.
+# Canonical importable source lives in the top-level ``hare/`` package.
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["tests*"]

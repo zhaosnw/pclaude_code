@@ -3,7 +3,7 @@
   "priority": "P1",
   "modules": [
     "cost_tracker.ts",
-    "hare/hare/cost_tracker.py"
+    "hare/cost_tracker.py"
   ],
   "description": "getCostSummary returns empty when no usage",
   "entrypoint": {

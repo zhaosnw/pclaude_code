@@ -3,7 +3,7 @@
   "priority": "P1",
   "modules": [
     "prompt.ts",
-    "hare/hare/services/compact/prompt.py"
+    "hare/services/compact/prompt.py"
   ],
   "description": "getCompactPrompt returns valid prompt string",
   "entrypoint": {

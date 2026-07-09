@@ -3,7 +3,7 @@
   "priority": "P1",
   "modules": [
     "ssrfGuard.ts",
-    "hare/hare/utils/hooks/ssrf_guard.py"
+    "hare/utils/hooks/ssrf_guard.py"
   ],
   "description": "isBlockedAddress returns false for public IPs",
   "entrypoint": {

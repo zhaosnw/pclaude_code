@@ -1,10 +1,12 @@
 .PHONY: help install test test-unit test-integration test-alignment e2e test-live mock-server e2e-record lint format typecheck typecheck-full mypy-regression security clean coverage stub-check stub-priority align-check imports-check alignment-quick alignment-full alignment-guardrails audit-sizediff replay all
 
+export PYTHONPATH := ..$(if $(PYTHONPATH),:$(PYTHONPATH))
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install hare with dev + anthropic (matches CI)
-	python -m pip install -e ".[dev,anthropic]"
+	cd .. && python -m pip install -e ".[dev,anthropic]"
 
 # ---------------------------------------------------------------------------
 # Testing (hierarchical: unit → integration → alignment)

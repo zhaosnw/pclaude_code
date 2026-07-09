@@ -3,7 +3,7 @@
 Assign and normalize alignment metadata in legacy_alignment/alignment_data.json.
 
 Phase 1 rules:
-- `rows[].py` must be repo-root relative and point into `hare/hare/...`
+- `rows[].py` must be repo-root relative and point into `hare/...`
 - `priority` is derived from the normalized python path
 - `behavior_status` defaults to `unverified`
 - `excluded`/`reason_if_excluded` placeholders are always present
@@ -19,67 +19,62 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 P0_PATTERNS = [
-    "hare/hare/query/",
-    "hare/hare/query_engine.py",
-    "hare/hare/tool.py",
-    "hare/hare/tools.py",
-    "hare/hare/entrypoints/cli.py",
-    "hare/hare/main.py",
-    "hare/hare/cli/print_handler.py",
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/cli/ndjson_safe_stringify.py",
-    "hare/hare/services/mcp/",
-    "hare/hare/session_setup.py",
-    "hare/hare/utils/messages",
-    "hare/hare/utils/errors.py",
-    "hare/hare/app_types/permissions.py",
+    "hare/query/",
+    "hare/query_engine.py",
+    "hare/tool.py",
+    "hare/tools.py",
+    "hare/entrypoints/cli.py",
+    "hare/main.py",
+    "hare/cli/print_handler.py",
+    "hare/cli/structured_io.py",
+    "hare/cli/ndjson_safe_stringify.py",
+    "hare/services/mcp/",
+    "hare/session_setup.py",
+    "hare/utils/messages",
+    "hare/utils/errors.py",
+    "hare/app_types/permissions.py",
 ]
 
 P1_PATTERNS = [
-    "hare/hare/commands.py",
-    "hare/hare/commands_impl/",
-    "hare/hare/bootstrap/state.py",
-    "hare/hare/cost_tracker.py",
-    "hare/hare/cost_hook.py",
-    "hare/hare/plugins/",
-    "hare/hare/services/compact/",
-    "hare/hare/query/stop_hooks.py",
-    "hare/hare/query/token_budget.py",
-    "hare/hare/utils/config.py",
-    "hare/hare/utils/env_utils.py",
-    "hare/hare/utils/settings/",
+    "hare/commands.py",
+    "hare/commands_impl/",
+    "hare/bootstrap/state.py",
+    "hare/cost_tracker.py",
+    "hare/cost_hook.py",
+    "hare/plugins/",
+    "hare/services/compact/",
+    "hare/query/stop_hooks.py",
+    "hare/query/token_budget.py",
+    "hare/utils/config.py",
+    "hare/utils/env_utils.py",
+    "hare/utils/settings/",
 ]
 
 P2_PATTERNS = [
-    "hare/hare/bridge/",
-    "hare/hare/remote/",
-    "hare/hare/services/analytics/",
-    "hare/hare/services/voice",
-    "hare/hare/services/lsp/",
-    "hare/hare/tasks/",
-    "hare/hare/vim/",
-    "hare/hare/buddy/",
-    "hare/hare/assistant/",
+    "hare/bridge/",
+    "hare/remote/",
+    "hare/services/analytics/",
+    "hare/services/voice",
+    "hare/services/lsp/",
+    "hare/tasks/",
+    "hare/vim/",
+    "hare/buddy/",
+    "hare/assistant/",
 ]
 
-P3_PATTERNS = [
-    "hare/hare/utils/native_installer/",
-    "hare/hare/utils/secure_storage/",
-]
+P3_PATTERNS = ["hare/utils/native_installer/", "hare/utils/secure_storage/"]
 
 
 def normalize_py_path(raw: str) -> str:
-    """Normalize path to repo-root relative `hare/hare/...` form."""
+    """Normalize path to repo-root relative `hare/...` form."""
     raw = raw.strip()
     if not raw:
         return ""
     if " | " in raw:
         return raw
     raw = raw.replace("\\", "/")
-    if raw.startswith("hare/hare/"):
-        return raw
     if raw.startswith("hare/"):
-        return f"hare/{raw}"
+        return raw
     return raw
 
 

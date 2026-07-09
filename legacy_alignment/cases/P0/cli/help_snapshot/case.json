@@ -2,11 +2,11 @@
   "case_id": "cli.help_snapshot",
   "priority": "P0",
   "modules": [
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/commands.py",
-    "hare/hare/entrypoints/cli.py",
-    "hare/hare/main.py",
-    "hare/hare/session_setup.py",
+    "hare/cli/structured_io.py",
+    "hare/commands.py",
+    "hare/entrypoints/cli.py",
+    "hare/main.py",
+    "hare/session_setup.py",
     "main.tsx"
   ],
   "description": "CLI help flag returns usage text and exit 0",

@@ -3,9 +3,9 @@
   "priority": "P0",
   "modules": [
     "cli/main.tsx",
-    "hare/hare/cli/cli_subcommand_exit.py",
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/entrypoints/cli.py"
+    "hare/cli/cli_subcommand_exit.py",
+    "hare/cli/structured_io.py",
+    "hare/entrypoints/cli.py"
   ],
   "description": "CLI with unknown flag prints error message to stderr and exits non-zero",
   "entrypoint": {

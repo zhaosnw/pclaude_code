@@ -1,4 +1,4 @@
-"""Allow running hare as a module: python -m hare"""
+"""Compatibility entrypoint for ``python -m hare`` inside ``hare/``."""
 
 from __future__ import annotations
 

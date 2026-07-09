@@ -3,7 +3,7 @@
   "priority": "P1",
   "modules": [
     "settings.ts",
-    "hare/hare/utils/settings/settings.py"
+    "hare/utils/settings/settings.py"
   ],
   "description": "parseSettingsFile handles valid JSON",
   "entrypoint": {

@@ -26,17 +26,19 @@ test = ["pytest>=8.0", "pytest-asyncio>=0.24", "pytest-cov>=5.0", "pytest-timeou
 [project.scripts]
 hare = "hare.entrypoints.cli:main"
 
-# Importable tree is ``hare/hare/…`` (inner ``hare`` package) so setuptools
-# discovers ``hare`` as a normal subfolder of this project directory.
+# Nested ``hare/`` workflows should resolve imports from the repo-root
+# top-level ``hare/`` package first while the mirrored ``hare/hare/`` tree
+# is being retired.
 [tool.setuptools.packages.find]
-where = ["."]
-exclude = ["tests*"]
+where = [".."]
+include = ["hare*"]
+exclude = ["tests*", "hare.hare*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["."]
+pythonpath = ["..", "."]
 markers = [
     "asyncio: async test (needs pytest-asyncio)",
     "unit: fast unit test — no network, no subprocess, no filesystem writes",

@@ -22,7 +22,7 @@ def test_alignment_data_uses_canonical_python_paths() -> None:
         if not isinstance(row, dict):
             continue
         py_path = str(row.get("py", ""))
-        if py_path and " | " not in py_path and not py_path.startswith("hare/hare/"):
+        if py_path and " | " not in py_path and not py_path.startswith("hare/"):
             bad.append(py_path)
     assert not bad, f"Found non-canonical python paths: {bad[:10]}"
 

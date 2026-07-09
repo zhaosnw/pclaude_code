@@ -10,7 +10,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TS_SRC = PROJECT_ROOT / "recovered-from-cli-js-map" / "src"
 ALIGNMENT_FILE = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
-PY_PACKAGE_ROOT = PROJECT_ROOT / "hare" / "hare"
+PY_PACKAGE_ROOT = PROJECT_ROOT / "hare"
 
 
 def verify() -> int:
@@ -55,12 +55,12 @@ def verify() -> int:
             status != "renamed?"
             and py_path
             and " | " not in py_path
-            and not py_path.startswith("hare/hare/")
+            and not py_path.startswith("hare/")
         ):
             invalid_py_root += 1
             if invalid_py_root <= 10:
                 print(f"  INVALID PY ROOT: {py_path}")
-        if expected_py and not expected_py.startswith("hare/hare/"):
+        if expected_py and not expected_py.startswith("hare/"):
             invalid_expected_root += 1
             if invalid_expected_root <= 10:
                 print(f"  INVALID EXPECTED ROOT: {expected_py}")

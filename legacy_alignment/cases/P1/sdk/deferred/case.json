@@ -1,7 +1,7 @@
 {
   "case_id": "sdk.deferred",
   "priority": "P1",
-  "modules": ["hare/hare/sdk/client.py"],
+  "modules": ["hare/sdk/client.py"],
   "description": "SDK harness is explicitly skipped in Phase 1",
   "entrypoint": {
     "kind": "sdk",

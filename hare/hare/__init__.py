@@ -1,17 +1,18 @@
-"""
-Hare – Python port of Hare CLI v2.1.88 (recovered from sourcemap).
+"""Compatibility shim for ``cd hare`` workflows.
 
-Keeps the same core control flow as the TypeScript original:
-
-1. User prompt enters a REPL or CLI entrypoint
-2. QueryEngine appends a user message
-3. query_loop() calls the model client
-4. The model either returns text or tool_use blocks
-5. Tool calls run through the registry and permission policy
-6. Tool results are appended as messages
-7. The loop continues until the assistant produces plain text
-8. AgentTool can recursively launch another QueryEngine
+This inner package used to mirror the full source tree. It now just extends
+``hare.__path__`` so nested workflows resolve submodules from the canonical
+repo-root ``hare/`` package.
 """
 
-VERSION = "2.1.88"
-BUILD_TIME = "recovered-from-sourcemap"
+from __future__ import annotations
+
+from pathlib import Path
+
+_CANONICAL_PKG = Path(__file__).resolve().parents[2] / "hare"
+_canonical_pkg_str = str(_CANONICAL_PKG)
+if _canonical_pkg_str not in __path__:
+    __path__.insert(0, _canonical_pkg_str)
+
+_globals = globals()
+exec((_CANONICAL_PKG / "__init__.py").read_text(encoding="utf-8"), _globals, _globals)

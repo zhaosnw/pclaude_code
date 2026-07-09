@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate that all ``hare.*`` imports within the hare package resolve.
 
-Walks every .py file under hare/hare/ and tests each ``from hare.X import Y``
+Walks every .py file under the canonical top-level ``hare/`` package and tests each ``from hare.X import Y``
 / ``import hare.X`` statement by attempting the import in a subprocess.
 Exits non-zero if any import fails.
 

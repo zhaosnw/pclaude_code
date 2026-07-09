@@ -3,7 +3,7 @@
   "priority": "P0",
   "modules": [
     "history.ts",
-    "hare/hare/history.py"
+    "hare/history.py"
   ],
   "description": "Session history parse \u2192 serialize round-trip preserves references",
   "entrypoint": {

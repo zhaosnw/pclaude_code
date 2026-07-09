@@ -7,12 +7,12 @@
 - The primary Python CLI implementation lives under `hare/`.
 - The current golden E2E alignment assets live under `hare/alignment/`.
 - The old 519-case Phase1 / py-only corpus lives under `legacy_alignment/`.
-- Root `alignment/` is only a compatibility mirror layer and should not be used as the default home for new E2E assets.
+- Canonical Python source lives at top-level `hare/`; `hare/hare/` now only remains as a thin compatibility shim for `cd hare/` workflows.
 
 For the latest verified repo status, start with:
 
 - [REVIEW_2026-07-02.md](REVIEW_2026-07-02.md)
-- [docs/alignment-status/2026-07-07.md](docs/alignment-status/2026-07-07.md)
+- [docs/alignment-status/2026-07-08.md](docs/alignment-status/2026-07-08.md)
 
 ## What is in this repo
 
@@ -21,7 +21,6 @@ For the latest verified repo status, start with:
 - `tests/`: unit, integration, property, E2E, and live smoke tests
 - `hare/alignment/`: current E2E fixtures, goldens, seeds, and golden-testing assets
 - `legacy_alignment/`: legacy 519-case Phase1 / py-only alignment corpus
-- `alignment/`: transitional compatibility mirror tree; not the canonical home for new E2E assets
 - `scripts/`: alignment runners, mock servers, regression checks, and audit helpers
 - `docs/`: notes on alignment findings and E2E testing
 
@@ -88,7 +87,7 @@ This repo keeps two alignment tracks:
 - `hare/alignment/` for the current golden-based CLI E2E differential tests
 - `legacy_alignment/` for the older Phase1 / py-only oracle corpus
 
-The root `alignment/` directory still exists for compatibility, but new assets and default workflows should target `hare/alignment/`.
+New assets and default workflows should target `hare/alignment/`.
 
 Examples:
 

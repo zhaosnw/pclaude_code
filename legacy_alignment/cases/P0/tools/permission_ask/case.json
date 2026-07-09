@@ -3,7 +3,7 @@
   "priority": "P0",
   "modules": [
     "utils/permissions/shellRuleMatching.ts",
-    "hare/hare/utils/permissions/shell_rule_matching.py"
+    "hare/utils/permissions/shell_rule_matching.py"
   ],
   "description": "Permission wildcard matching correctly identifies unclassified command as match",
   "entrypoint": {

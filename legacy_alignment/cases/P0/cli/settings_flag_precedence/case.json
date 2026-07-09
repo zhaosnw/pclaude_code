@@ -3,11 +3,11 @@
   "priority": "P0",
   "modules": [
     "cli/settings.ts",
-    "hare/hare/cli/structured_io.py",
-    "hare/hare/entrypoints/cli.py",
-    "hare/hare/main.py",
-    "hare/hare/session_setup.py",
-    "hare/hare/utils/settings/settings.py"
+    "hare/cli/structured_io.py",
+    "hare/entrypoints/cli.py",
+    "hare/main.py",
+    "hare/session_setup.py",
+    "hare/utils/settings/settings.py"
   ],
   "description": "CLI flag takes precedence over env var for settings",
   "entrypoint": {
