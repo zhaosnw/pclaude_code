@@ -9,19 +9,15 @@ sys.path.insert(0, str(REPO / "scripts"))
 from e2e_runner import run_case  # noqa: E402
 
 
-FIXTURES = [
-    "alignment/fixtures/single_turn_hello.json",
-    "hare/alignment/fixtures/single_turn_hello.json",
-]
+FIXTURE = "hare/alignment/fixtures/single_turn_hello.json"
 
 
-@pytest.mark.parametrize("fixture", FIXTURES)
-def test_run_case_injects_fixture_and_snapshots_files(fixture):
+def test_run_case_injects_fixture_and_snapshots_files():
     case = {
         "case_id": "smoke.hello",
         "priority": "P1",
         "entrypoint": {"argv": ["-p", "hi"]},
-        "fixture": fixture,
+        "fixture": FIXTURE,
         "expected": {"exit_code": 0, "stdout_kind": "text"},
         "policy": {},
     }
@@ -32,13 +28,25 @@ def test_run_case_injects_fixture_and_snapshots_files(fixture):
     assert result["sandbox_root"]
 
 
-@pytest.mark.parametrize("fixture", FIXTURES)
-def test_run_case_seeds_files_into_sandbox(fixture):
+def test_run_case_rejects_legacy_fixture_prefix():
+    case = {
+        "case_id": "smoke.legacy-fixture",
+        "priority": "P1",
+        "entrypoint": {"argv": ["-p", "hi"]},
+        "fixture": "alignment/fixtures/single_turn_hello.json",
+        "expected": {"exit_code": 0, "stdout_kind": "text"},
+        "policy": {},
+    }
+    with pytest.raises(ValueError, match="hare/alignment"):
+        run_case(case)
+
+
+def test_run_case_seeds_files_into_sandbox():
     case = {
         "case_id": "smoke.seed",
         "priority": "P1",
         "entrypoint": {"argv": ["-p", "hi"]},
-        "fixture": fixture,
+        "fixture": FIXTURE,
         "fs": {"seed": ["README.md"]},
         "expected": {"exit_code": 0},
         "policy": {},

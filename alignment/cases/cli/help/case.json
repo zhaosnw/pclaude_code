@@ -1,8 +1,0 @@
-{
-  "case_id": "cli.help",
-  "priority": "P0",
-  "kind": "deterministic",
-  "entrypoint": {"argv": ["--help"]},
-  "expected": {"exit_code": 0, "stdout_kind": "text"},
-  "policy": {"match": "contains", "golden_source": "self"}
-}

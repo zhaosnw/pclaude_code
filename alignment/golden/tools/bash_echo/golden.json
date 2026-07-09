@@ -1,8 +1,0 @@
-{
-  "case_id": "tools.bash_echo",
-  "status": "ok",
-  "state": {
-    "exit_code": 0
-  },
-  "stdout": "The command ran successfully.\n"
-}

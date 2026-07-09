@@ -42,9 +42,10 @@ def _resolve_hare_fixture_path(fixture: str) -> Path:
         return path
     if path.parts[:2] == ("hare", "alignment"):
         return (REPO_ROOT / path).resolve()
-    if path.parts[:1] == ("alignment",):
-        return (HARE_ROOT / path).resolve()
-    return (HARE_ROOT / path).resolve()
+    raise ValueError(
+        "fixture path must use the canonical 'hare/alignment/...' prefix: "
+        f"{fixture}"
+    )
 
 
 def find_case(case_id: str) -> Path:

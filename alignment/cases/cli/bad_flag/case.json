@@ -1,8 +1,0 @@
-{
-  "case_id": "cli.bad_flag",
-  "priority": "P0",
-  "kind": "deterministic",
-  "entrypoint": {"argv": ["--no-such-flag"]},
-  "expected": {"exit_code": 2, "stdout_kind": "text"},
-  "policy": {"match": "contains", "golden_source": "self"}
-}

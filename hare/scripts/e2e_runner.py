@@ -11,7 +11,6 @@ A case dict:
     {
       "case_id": str,
       "entrypoint": {"argv": [...], "stdin": str|None},
-      "fixture": "alignment/fixtures/<name>.json"   # optional legacy form
       "fixture": "hare/alignment/fixtures/<name>.json"  # optional canonical form
       "fs": {"seed": ["README.md", ...]},           # optional; copied from hare/alignment/seeds/
       "env": {...},                                  # optional extra env
@@ -46,9 +45,10 @@ def _resolve_hare_fixture_path(fixture: str) -> Path:
         return path
     if path.parts[:2] == ("hare", "alignment"):
         return (REPO_ROOT / path).resolve()
-    if path.parts[:1] == ("alignment",):
-        return (HARE_ROOT / path).resolve()
-    return (HARE_ROOT / path).resolve()
+    raise ValueError(
+        "fixture path must use the canonical 'hare/alignment/...' prefix: "
+        f"{fixture}"
+    )
 
 
 def _parse_stdout(stdout: str, stdout_kind: str) -> list[Any]:

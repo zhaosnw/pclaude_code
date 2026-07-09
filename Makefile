@@ -113,12 +113,6 @@ alignment-guardrails: ## Run the de-mirroring / fixture-canonicalization guardra
 		hare/tests/test_hare_record_golden_paths.py \
 		tests/test_alignment_case_fixture_paths.py \
 		hare/tests/test_hare_alignment_case_fixture_paths.py \
-		tests/test_alignment_legacy_fixture_ref_allowlist.py \
-		hare/tests/test_hare_alignment_legacy_fixture_ref_allowlist.py \
-		tests/test_root_alignment_ref_allowlist.py \
-		hare/tests/test_hare_root_alignment_ref_allowlist.py \
-		tests/test_root_alignment_string_ref_allowlist.py \
-		hare/tests/test_hare_root_alignment_string_ref_allowlist.py \
 		tests/test_e2e_runner.py \
 		hare/tests/test_hare_e2e_runner.py -q
 

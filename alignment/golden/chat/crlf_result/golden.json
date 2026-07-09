@@ -1,8 +1,0 @@
-{
-  "case_id": "chat.crlf_result",
-  "status": "ok",
-  "state": {
-    "exit_code": 0
-  },
-  "stdout": "alpha\nbeta\ngamma\n"
-}

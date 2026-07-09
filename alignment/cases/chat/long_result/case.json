@@ -1,8 +1,0 @@
-{
-  "case_id": "chat.long_result",
-  "priority": "P1",
-  "entrypoint": {"argv": ["-p", "tell me a short story in six paragraphs"]},
-  "fixture": "hare/alignment/fixtures/long_result.json",
-  "expected": {"exit_code": 0, "stdout_kind": "text"},
-  "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
-}

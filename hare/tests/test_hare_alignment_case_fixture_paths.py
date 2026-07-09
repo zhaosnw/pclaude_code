@@ -6,7 +6,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASE_ROOTS = [
-    PROJECT_ROOT / "alignment" / "cases",
     PROJECT_ROOT / "hare" / "alignment" / "cases",
 ]
 CANONICAL_PREFIX = "hare/alignment/fixtures/"

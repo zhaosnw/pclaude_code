@@ -1,8 +1,0 @@
-{
-  "case_id": "tools.text_before_tool",
-  "status": "ok",
-  "state": {
-    "exit_code": 0
-  },
-  "stdout": "Found it.\n"
-}

@@ -1,8 +1,0 @@
-{
-  "case_id": "tools.ls_listing",
-  "status": "ok",
-  "state": {
-    "exit_code": 0
-  },
-  "stdout": "Listed.\n"
-}

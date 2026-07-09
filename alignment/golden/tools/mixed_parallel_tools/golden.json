@@ -1,8 +1,0 @@
-{
-  "case_id": "tools.mixed_parallel_tools",
-  "status": "ok",
-  "state": {
-    "exit_code": 0
-  },
-  "stdout": "Read a.txt and ran echo hi.\n"
-}

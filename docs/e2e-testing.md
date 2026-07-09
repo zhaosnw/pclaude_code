@@ -83,7 +83,7 @@ export CLAUDE_TS_CLI="claude"   # 官方 CLI(实测可 headless 跑)
 ### B. 模型驱动 case(单轮问答 / 工具调用 / 权限 / 压缩)
 
 1. 写 `hare/alignment/fixtures/<name>.json`。
-2. 写 `case.json`,优先声明 `"fixture": "hare/alignment/fixtures/<name>.json"`；旧的 `"alignment/fixtures/..."` 形式仍兼容，但新 case 不再推荐继续用旧写法。需要文件的加 `"fs": {"seed": [...]}`。
+2. 写 `case.json`，并使用 `"fixture": "hare/alignment/fixtures/<name>.json"`。旧的 `"alignment/fixtures/..."` 已不再支持。需要文件的加 `"fs": {"seed": [...]}`。
 3. 录 golden(需 TS 原版):`python scripts/record_golden.py <case_id>`。
 4. `pytest tests/e2e -k <case_id>` 跑绿。若 hare 与 TS 输出有差异,这正是要发现的对齐 bug——记录下来,**不要**为了过测在 normalize 里抹掉真实差异。
 
