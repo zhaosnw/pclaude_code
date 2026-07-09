@@ -109,6 +109,7 @@ alignment-full: ## Run P0+P1 alignment (Python only)
 
 alignment-guardrails: ## Run the de-mirroring / fixture-canonicalization guardrail suite
 	python -m pytest \
+		tests/test_hare_tree_cleanup_guard.py \
 		tests/test_record_golden_paths.py \
 		hare/tests/test_hare_record_golden_paths.py \
 		tests/test_alignment_case_fixture_paths.py \

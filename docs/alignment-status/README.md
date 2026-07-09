@@ -6,6 +6,7 @@
 
 - [Repo Review](../../REVIEW_2026-07-02.md)
 - [Latest Status Snapshot](./2026-07-08.md)
+- [Alignment Plan](./2026-07-09-alignment-plan.md)
 
 约定：
 
@@ -19,6 +20,7 @@
 
 当前记录：
 
+- [2026-07-09 Alignment Plan](./2026-07-09-alignment-plan.md)
 - [2026-07-08](./2026-07-08.md)
 - [2026-07-07](./2026-07-07.md)
 - [2026-07-06](./2026-07-06.md)

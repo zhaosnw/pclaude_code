@@ -7,7 +7,7 @@
 - The primary Python CLI implementation lives under `hare/`.
 - The current golden E2E alignment assets live under `hare/alignment/`.
 - The old 519-case Phase1 / py-only corpus lives under `legacy_alignment/`.
-- Canonical Python source lives at top-level `hare/`; `hare/hare/` now only remains as a thin compatibility shim for `cd hare/` workflows.
+- Canonical Python source lives at top-level `hare/`; `hare/hare/` is no longer part of the supported runtime layout.
 
 For the latest verified repo status, start with:
 
