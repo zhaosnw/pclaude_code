@@ -1,0 +1,27 @@
+{
+  "case_id": "hooks.ssrf.is_blocked_address.public",
+  "priority": "P1",
+  "modules": [
+    "ssrfGuard.ts",
+    "hare/hare/utils/hooks/ssrf_guard.py"
+  ],
+  "description": "isBlockedAddress returns false for public IPs",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "hooks.is_blocked_address",
+    "module_kwargs": {
+      "address": "8.8.8.8"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

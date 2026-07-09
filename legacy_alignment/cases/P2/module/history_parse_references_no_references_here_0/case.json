@@ -1,0 +1,27 @@
+{
+  "case_id": "history.parse_references.no_references_here_0",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "parseReferences 'no references here'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "no references here"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

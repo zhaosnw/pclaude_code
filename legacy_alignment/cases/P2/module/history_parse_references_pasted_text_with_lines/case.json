@@ -1,0 +1,27 @@
+{
+  "case_id": "history.parse_references.pasted_text_with_lines",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "parseReferences with pasted_text_with_lines",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "[Pasted text #1 +5 lines]"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

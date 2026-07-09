@@ -1,0 +1,28 @@
+{
+  "case_id": "permission.match_wildcard.git_checkout",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "matchWildcardPattern git_checkout",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "git checkout *",
+      "command": "git checkout main"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

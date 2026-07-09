@@ -1,0 +1,26 @@
+{
+  "case_id": "history.parse_references.r3_3",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "ref 3",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "Mixed [Image #1] and text"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

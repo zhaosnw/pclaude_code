@@ -1,0 +1,35 @@
+{
+  "case_id": "settings.parse_file.v4",
+  "priority": "P1",
+  "modules": [
+    "settings.ts",
+    "hare/hare/utils/settings/settings.py"
+  ],
+  "description": "parseSettingsFile with path='/etc/config.json'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "settings.parse_file",
+    "module_kwargs": {
+      "path": "/etc/config.json"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "events",
+        "reason": "Structure matches, content may differ",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

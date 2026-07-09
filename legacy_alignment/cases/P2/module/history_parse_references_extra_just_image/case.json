@@ -1,0 +1,27 @@
+{
+  "case_id": "history.parse_references.extra_just_image",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "parseReferences extra just_image",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "[Image #7] and then [Image #8]"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

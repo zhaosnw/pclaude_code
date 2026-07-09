@@ -1,0 +1,27 @@
+{
+  "case_id": "history.pasted_text_num_lines.extra_many_lines",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "getPastedTextRefNumLines extra many_lines",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.pasted_text_num_lines",
+    "module_kwargs": {
+      "text": "line0\nline1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\nline12\nline13\nline14\nline15\nline16\nline17\nline18\nline19"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

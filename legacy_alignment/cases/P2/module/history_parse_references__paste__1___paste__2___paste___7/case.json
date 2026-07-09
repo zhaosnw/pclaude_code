@@ -1,0 +1,27 @@
+{
+  "case_id": "history.parse_references._paste__1___paste__2___paste___7",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "parseReferences '{paste #1}\n{paste #2}\n{paste #3}'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "{paste #1}\n{paste #2}\n{paste #3}"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

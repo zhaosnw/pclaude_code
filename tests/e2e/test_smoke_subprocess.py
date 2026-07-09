@@ -5,14 +5,22 @@ from pathlib import Path
 
 import pytest
 
-REPO = Path(__file__).resolve().parents[2]
-FIXTURE = REPO / "alignment" / "fixtures" / "single_turn_hello.json"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+HARE_ROOT = REPO_ROOT / "hare"
+FIXTURE = HARE_ROOT / "alignment" / "fixtures" / "single_turn_hello.json"
 
 
 @pytest.mark.integration
 def test_print_mode_uses_fixture_and_is_deterministic():
     env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [str(REPO_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     env["HARE_MODEL_FIXTURE"] = str(FIXTURE)
+    env["HARE_CONFIG_DIR"] = str(REPO_ROOT / ".tmp-hare-config")
+    env["CLAUDE_CONFIG_DIR"] = env["HARE_CONFIG_DIR"]
     env["ANTHROPIC_API_KEY"] = "test-key-not-used"
     # 跑两次,输出必须逐字节一致,且包含 fixture 文本
     outs = []
@@ -23,7 +31,7 @@ def test_print_mode_uses_fixture_and_is_deterministic():
             text=True,
             timeout=60,
             env=env,
-            cwd=str(REPO),
+            cwd=str(REPO_ROOT),
         )
         assert proc.returncode == 0, proc.stderr
         outs.append(proc.stdout)
@@ -39,14 +47,21 @@ def test_empty_or_whitespace_print_prompt_errors_without_model_call(empty_prompt
     rejects empty/whitespace prompts. Found via live testing: hare dropped to the
     REPL on "" and sent "   " to the model (13 turns / occasional timeout)."""
     env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [str(REPO_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     # Point the fixture model at a path that would raise if invoked, to prove no
     # model call happens (the error must come before any model interaction).
     env["HARE_MODEL_FIXTURE"] = str(FIXTURE)
+    env["HARE_CONFIG_DIR"] = str(REPO_ROOT / ".tmp-hare-config")
+    env["CLAUDE_CONFIG_DIR"] = env["HARE_CONFIG_DIR"]
     env["ANTHROPIC_API_KEY"] = "test-key-not-used"
     proc = subprocess.run(
         [sys.executable, "-m", "hare", "-p", empty_prompt, "--output-format", "json"],
         capture_output=True, text=True, timeout=30,
-        env=env, cwd=str(REPO), stdin=subprocess.DEVNULL,
+        env=env, cwd=str(REPO_ROOT), stdin=subprocess.DEVNULL,
     )
     combined = proc.stdout + proc.stderr
     assert "Hare Python Port" not in combined, f"dropped to REPL:\n{combined}"
@@ -62,12 +77,19 @@ def test_prompt_read_from_stdin_when_piped():
     run non-interactively — matching Claude Code. (Was a defect: hare ignored
     stdin and dropped to the REPL.)"""
     env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [str(REPO_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     env["HARE_MODEL_FIXTURE"] = str(FIXTURE)
+    env["HARE_CONFIG_DIR"] = str(REPO_ROOT / ".tmp-hare-config")
+    env["CLAUDE_CONFIG_DIR"] = env["HARE_CONFIG_DIR"]
     env["ANTHROPIC_API_KEY"] = "test-key-not-used"
     proc = subprocess.run(
         [sys.executable, "-m", "hare", "--output-format", "json"],
         input="what is this project?",
-        capture_output=True, text=True, timeout=30, env=env, cwd=str(REPO),
+        capture_output=True, text=True, timeout=30, env=env, cwd=str(REPO_ROOT),
     )
     assert "Hare Python Port" not in proc.stdout, f"dropped to REPL:\n{proc.stdout}"
     assert proc.returncode == 0, proc.stderr

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check for alignment regressions by comparing current state against alignment_data.json.
+"""Check for alignment regressions against legacy_alignment/alignment_data.json.
 
 A regression is:
   - A file that was "done" but now has stub markers (NotImplementedError/TODO).
@@ -8,7 +8,7 @@ A regression is:
 
 Usage:
     python scripts/check_alignment_regressions.py
-    python scripts/check_alignment_regressions.py --baseline alignment_data.json
+    python scripts/check_alignment_regressions.py --baseline legacy_alignment/alignment_data.json
 """
 
 from __future__ import annotations
@@ -18,11 +18,10 @@ import re
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]  # hare/ project dir
-REPO_ROOT = PROJECT_ROOT.parent  # claude-code-recover-and-python-reset/
-ALIGNMENT_FILE = REPO_ROOT / "alignment_data.json"
-# py_rel paths in alignment_data.json are relative to REPO_ROOT (e.g. hare/hare/query_engine.py)
-PY_BASE = REPO_ROOT
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ALIGNMENT_FILE = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
+# py_rel paths in alignment_data.json are relative to PROJECT_ROOT
+PY_BASE = PROJECT_ROOT
 
 STUB_MARKERS = re.compile(
     r"(raise\s+NotImplementedError|#\s*(TODO|FIXME|STUB))",

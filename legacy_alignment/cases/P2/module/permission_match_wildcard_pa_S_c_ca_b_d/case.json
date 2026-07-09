@@ -1,0 +1,28 @@
+{
+  "case_id": "permission.match_wildcard.pa_s_c_ca_b_d",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "matchWildcard pattern='a/*/c' command='a/b/d'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "a/*/c",
+      "command": "a/b/d"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "case_id": "permission.match_wildcard.wildcard_mid",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "matchWildcardPattern pattern='git * origin' cmd='git push origin'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "git * origin",
+      "command": "git push origin"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

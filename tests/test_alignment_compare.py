@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-COMPARE = PROJECT_ROOT / "hare" / "scripts" / "compare_alignment.py"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+COMPARE = PROJECT_ROOT / "scripts" / "compare_alignment.py"
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:

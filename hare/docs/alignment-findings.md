@@ -1,5 +1,9 @@
 # Alignment findings (hare ↔ Claude Code)
 
+> Status note (2026-07-07): this file is a bug-gap ledger, not the current repo-status snapshot.
+> For the latest verified status, use `REVIEW_2026-07-02.md` and `docs/alignment-status/2026-07-07.md`.
+> Any historical pass counts or dates mentioned below should be read as point-in-time evidence, not current totals.
+
 Bugs/gaps surfaced by the E2E differential suite. Output-side bugs were fixed in
 place; request-side gaps that need feature work are tracked here.
 

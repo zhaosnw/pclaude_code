@@ -1,0 +1,29 @@
+{
+  "case_id": "token_budget.check.b80k_t79999",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "checkTokenBudget b80k_t79999",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": null,
+      "budget": 80000,
+      "tokens": 79999
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "case_id": "cli.invalid_flag.error_text",
+  "priority": "P0",
+  "modules": [
+    "cli/main.tsx",
+    "hare/hare/cli/cli_subcommand_exit.py",
+    "hare/hare/cli/structured_io.py",
+    "hare/hare/entrypoints/cli.py"
+  ],
+  "description": "CLI with unknown flag prints error message to stderr and exits non-zero",
+  "entrypoint": {
+    "kind": "cli",
+    "argv": [
+      "--nonexistent-flag-xyz"
+    ],
+    "stdin": null
+  },
+  "env": {
+    "TZ": "UTC",
+    "LANG": "C.UTF-8"
+  },
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {
+    "exit_code": 2,
+    "stderr_substrings": [
+      "unrecognized"
+    ]
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "stderr",
+        "reason": "Phase 2: error message wording varies across arg parsers",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "state.exit_code",
+        "reason": "Phase 2: exact exit code for unknown flag may differ (1 vs 2)",
+        "expires_at": "2099-01-01",
+        "kind": "number"
+      }
+    ]
+  }
+}

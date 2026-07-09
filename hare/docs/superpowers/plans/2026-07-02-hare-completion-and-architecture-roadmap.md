@@ -1,5 +1,9 @@
 # hare 完善计划与架构演进路线图
 
+> Historical planning note (updated 2026-07-07): this file is a roadmap snapshot written on 2026-07-02, not a live status page.
+> Current verified status has moved to `REVIEW_2026-07-02.md` and `docs/alignment-status/2026-07-07.md`.
+> Any baseline counts, path assumptions, or acceptance gates below must be re-validated against the current worktree before execution.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **注意分层**:本文档是**总路线图**(roadmap of plans)。只有 Phase 0 是可以直接逐步执行的完整计划;Phase 1–4 的每个任务组在开工时应各自用 writing-plans 技能展开成独立的可执行计划(存放于本目录,命名 `YYYY-MM-DD-<任务名>.md`)。
@@ -10,7 +14,7 @@
 
 **Tech Stack:** Python 3.11+ 纯 stdlib 内核(现状 `dependencies = []`,视为资产)、pytest/Hypothesis、官方 `claude` CLI(oracle 录制)、mypy、GitHub Actions。
 
-**事实基线(2026-07-02 评审实测,详见根目录 `REVIEW_2026-07-02.md`):**
+**事实基线(2026-07-02 写作时快照,不是当前状态):**
 unit 1144 / alignment 1585 / e2e 64 全绿;真差分仅 41 个 golden case;mypy 497 errors(基线 210);463 个 `hare/hare/*.py` 未入 git;hare/hare 208,642 行 vs TS 非 UI 386,577 行;近 4 个 commit 每轮对抗审计仍挖出 confirmed bug。
 
 ---

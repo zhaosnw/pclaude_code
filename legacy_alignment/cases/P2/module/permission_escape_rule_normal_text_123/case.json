@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.escape_rule.normal_text_123",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "escapeRuleContent 'normal_text_123'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.escape_rule",
+    "module_kwargs": {
+      "content": "normal_text_123"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

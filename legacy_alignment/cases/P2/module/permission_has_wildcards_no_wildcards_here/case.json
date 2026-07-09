@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.has_wildcards.no_wildcards_here",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "hasWildcards 'no_wildcards_here'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.has_wildcards",
+    "module_kwargs": {
+      "pattern": "no_wildcards_here"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "case_id": "token_budget.check.v2_budget_200k_150k",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "checkTokenBudget v2 budget_200k_150k",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": null,
+      "budget": 200000,
+      "tokens": 150000
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

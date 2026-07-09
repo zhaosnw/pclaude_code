@@ -7,7 +7,7 @@
       "think please"
     ]
   },
-  "fixture": "alignment/fixtures/thinking.json",
+  "fixture": "hare/alignment/fixtures/thinking.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "text"

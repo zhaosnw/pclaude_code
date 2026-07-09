@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Assign and normalize alignment metadata in alignment_data.json.
+Assign and normalize alignment metadata in legacy_alignment/alignment_data.json.
 
 Phase 1 rules:
 - `rows[].py` must be repo-root relative and point into `hare/hare/...`
@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_DATA = PROJECT_ROOT / "alignment_data.json"
+ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 P0_PATTERNS = [
     "hare/hare/query/",

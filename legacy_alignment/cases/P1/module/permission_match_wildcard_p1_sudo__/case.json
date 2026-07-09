@@ -1,0 +1,28 @@
+{
+  "case_id": "permission.match_wildcard.p1_sudo__",
+  "priority": "P1",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "matchWildcard P1 'sudo *'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "sudo *",
+      "command": "sudo rm -rf /"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

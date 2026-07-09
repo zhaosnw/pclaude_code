@@ -2,7 +2,7 @@
   "case_id": "chat.multiline",
   "priority": "P1",
   "entrypoint": {"argv": ["-p", "multi line please"]},
-  "fixture": "alignment/fixtures/multiline.json",
+  "fixture": "hare/alignment/fixtures/multiline.json",
   "expected": {"exit_code": 0, "stdout_kind": "text"},
   "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
 }

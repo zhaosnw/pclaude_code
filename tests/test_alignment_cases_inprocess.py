@@ -18,7 +18,9 @@ _scripts_dir = str(Path(__file__).resolve().parent.parent / "scripts")
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
-_ALIGNMENT_CASES = str(Path(__file__).resolve().parents[2] / "alignment" / "cases")
+_ALIGNMENT_CASES = str(
+    Path(__file__).resolve().parents[1] / "legacy_alignment" / "cases"
+)
 
 
 def _discover_query_cases():

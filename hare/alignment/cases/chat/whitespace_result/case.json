@@ -7,7 +7,7 @@
       "say only spaces"
     ]
   },
-  "fixture": "alignment/fixtures/whitespace_result.json",
+  "fixture": "hare/alignment/fixtures/whitespace_result.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "text"

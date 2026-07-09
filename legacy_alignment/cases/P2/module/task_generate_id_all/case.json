@@ -1,0 +1,69 @@
+{
+  "case_id": "task.generate_id_all",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "generateTaskId for all 7 types at once",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.generate_id_all",
+    "module_kwargs": {}
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false,
+    "allow_delta": [
+      {
+        "path": "events.0.id",
+        "reason": "Random task IDs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.1.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.2.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.3.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.4.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.5.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.6.id",
+        "reason": "Random",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

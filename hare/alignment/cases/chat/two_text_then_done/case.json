@@ -2,7 +2,7 @@
   "case_id": "chat.two_text_then_done",
   "priority": "P1",
   "entrypoint": {"argv": ["-p", "describe the cache briefly"]},
-  "fixture": "alignment/fixtures/two_text_then_done.json",
+  "fixture": "hare/alignment/fixtures/two_text_then_done.json",
   "expected": {"exit_code": 0, "stdout_kind": "text"},
   "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
 }

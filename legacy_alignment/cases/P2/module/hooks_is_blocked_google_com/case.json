@@ -1,0 +1,27 @@
+{
+  "case_id": "hooks.is_blocked.google_com",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isBlockedAddress 'google.com'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "hooks.is_blocked_address",
+    "module_kwargs": {
+      "address": "google.com"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

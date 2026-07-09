@@ -1,0 +1,25 @@
+{
+  "case_id": "task.is_terminal_all",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isTerminalTaskStatus for all 5 statuses at once",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.is_terminal_all",
+    "module_kwargs": {}
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

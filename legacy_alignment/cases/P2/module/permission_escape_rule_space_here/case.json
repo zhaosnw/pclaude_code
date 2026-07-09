@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.escape_rule.space_here",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "escapeRuleContent 'space here'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.escape_rule",
+    "module_kwargs": {
+      "content": "space here"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

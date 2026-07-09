@@ -1,0 +1,30 @@
+{
+  "case_id": "tools.permission.allow_decision",
+  "priority": "P0",
+  "modules": [
+    "utils/permissions/permissions.ts",
+    "hare/hare/utils/permissions/shell_rule_matching.py"
+  ],
+  "description": "Permission wildcard matching returns true for matching pattern",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "*",
+      "command": "ls"
+    }
+  },
+  "env": {},
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {},
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": []
+  }
+}

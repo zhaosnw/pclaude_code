@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.match_wildcard.r3_8",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "match 8",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "chmod *",
+      "command": "chmod 755 x"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

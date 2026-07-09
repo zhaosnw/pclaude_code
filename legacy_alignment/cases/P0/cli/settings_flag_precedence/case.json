@@ -1,0 +1,47 @@
+{
+  "case_id": "cli.settings.flag_precedence_over_env",
+  "priority": "P0",
+  "modules": [
+    "cli/settings.ts",
+    "hare/hare/cli/structured_io.py",
+    "hare/hare/entrypoints/cli.py",
+    "hare/hare/main.py",
+    "hare/hare/session_setup.py",
+    "hare/hare/utils/settings/settings.py"
+  ],
+  "description": "CLI flag takes precedence over env var for settings",
+  "entrypoint": {
+    "kind": "cli",
+    "argv": [
+      "--version"
+    ],
+    "stdin": null
+  },
+  "env": {
+    "TZ": "UTC",
+    "LANG": "C.UTF-8",
+    "HARE_OUTPUT_FORMAT": "json"
+  },
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "text"
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "stdout",
+        "reason": "Phase 2: version strings differ, env var precedence tested structurally",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

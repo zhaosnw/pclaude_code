@@ -1,0 +1,26 @@
+{
+  "case_id": "settings.parse_file.g4_2",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "settings g4_2",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "settings.parse_file",
+    "module_kwargs": {
+      "path": ""
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

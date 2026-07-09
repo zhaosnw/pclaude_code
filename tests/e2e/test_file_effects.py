@@ -16,8 +16,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "alignment"))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+HARE_ROOT = REPO_ROOT / "hare"
+sys.path.insert(0, str(HARE_ROOT / "alignment"))
 
 from golden_normalize import compare_file_effects  # noqa: E402
 

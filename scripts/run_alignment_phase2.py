@@ -8,11 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_ROOT = PROJECT_ROOT / "alignment"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ALIGNMENT_ROOT = PROJECT_ROOT / "legacy_alignment"
 CASES_ROOT = ALIGNMENT_ROOT / "cases"
-PY_RUNNER = PROJECT_ROOT / "hare" / "scripts" / "alignment_runner.py"
-COMPARE = PROJECT_ROOT / "hare" / "scripts" / "compare_alignment.py"
+PY_RUNNER = PROJECT_ROOT / "scripts" / "alignment_runner.py"
+COMPARE = PROJECT_ROOT / "scripts" / "compare_alignment.py"
 TS_RUNNER = (
     PROJECT_ROOT / "recovered-from-cli-js-map" / "alignment-harness" / "runner.ts"
 )

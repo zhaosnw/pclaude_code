@@ -1,0 +1,27 @@
+{
+  "case_id": "hooks.is_blocked.ff00__1",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isBlockedAddress '[ff00::1]'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "hooks.is_blocked_address",
+    "module_kwargs": {
+      "address": "[ff00::1]"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

@@ -15,7 +15,7 @@
       "json"
     ]
   },
-  "fixture": "alignment/fixtures/perm_deny_denials.json",
+  "fixture": "hare/alignment/fixtures/perm_deny_denials.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "json"

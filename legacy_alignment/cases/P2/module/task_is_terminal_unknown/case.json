@@ -1,0 +1,27 @@
+{
+  "case_id": "task.is_terminal.unknown_status",
+  "priority": "P2",
+  "modules": [
+    "Task.ts",
+    "hare/task.py"
+  ],
+  "description": "isTerminalTaskStatus for unknown status returns False",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.is_terminal",
+    "module_kwargs": {
+      "status": "unknown"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

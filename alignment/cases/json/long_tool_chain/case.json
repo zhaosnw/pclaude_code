@@ -18,7 +18,7 @@
       "--dangerously-skip-permissions"
     ]
   },
-  "fixture": "alignment/fixtures/long_tool_chain.json",
+  "fixture": "hare/alignment/fixtures/long_tool_chain.json",
   "fs": {
     "seed": [
       "a.txt",

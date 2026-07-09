@@ -7,7 +7,7 @@
       "say nothing"
     ]
   },
-  "fixture": "alignment/fixtures/empty_text.json",
+  "fixture": "hare/alignment/fixtures/empty_text.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "text"

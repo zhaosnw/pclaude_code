@@ -9,7 +9,7 @@
       "json"
     ]
   },
-  "fixture": "alignment/fixtures/json_unicode.json",
+  "fixture": "hare/alignment/fixtures/json_unicode.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "json"

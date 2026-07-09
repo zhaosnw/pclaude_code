@@ -1,0 +1,41 @@
+{
+  "case_id": "config.env_expansion.home_and_project",
+  "priority": "P0",
+  "modules": [
+    "hare/hare/cli/structured_io.py",
+    "hare/hare/entrypoints/cli.py",
+    "hare/hare/utils/settings/settings.py",
+    "utils/settings/settings.ts"
+  ],
+  "description": "Environment variable expansion resolves ${HOME} and ${PROJECT_DIR}",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "settings.parse_file",
+    "module_kwargs": {
+      "path": ""
+    }
+  },
+  "env": {
+    "HOME": "/tmp/test-home",
+    "PROJECT_DIR": "/tmp/test-project"
+  },
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {},
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "events",
+        "reason": "Phase 2: env expansion verified structurally",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "case_id": "history.format_image_ref.id10",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "formatImageRef id=10",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.format_image_ref",
+    "module_kwargs": {
+      "id": 10
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

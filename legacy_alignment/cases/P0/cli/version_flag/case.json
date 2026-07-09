@@ -1,0 +1,52 @@
+{
+  "case_id": "cli.version_flag",
+  "priority": "P0",
+  "modules": [
+    "hare/hare/cli/structured_io.py",
+    "hare/hare/entrypoints/cli.py",
+    "hare/hare/main.py",
+    "hare/hare/session_setup.py",
+    "main.tsx"
+  ],
+  "description": "CLI version flag returns text output and exit 0",
+  "entrypoint": {
+    "kind": "cli",
+    "argv": [
+      "--version"
+    ],
+    "stdin": null
+  },
+  "env": {
+    "TZ": "UTC",
+    "LANG": "C.UTF-8"
+  },
+  "fs": {
+    "cwd_template": "fixtures/empty_repo",
+    "writes_allowed_under": []
+  },
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "text",
+    "stderr_substrings": []
+  },
+  "policy": {
+    "ignore_fields": [
+      "phase1_notes"
+    ],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "stdout",
+        "reason": "Phase 2 baseline mismatch between recovered TS version string and Python package version string",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

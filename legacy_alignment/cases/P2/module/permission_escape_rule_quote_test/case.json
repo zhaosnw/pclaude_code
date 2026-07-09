@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.escape_rule.quote_test",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "escapeRuleContent 'quote\"test'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.escape_rule",
+    "module_kwargs": {
+      "content": "quote\"test"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

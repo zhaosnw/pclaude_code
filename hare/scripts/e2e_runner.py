@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-contained CLI E2E runner, rooted at the ``hare/`` package dir.
+"""Self-contained CLI E2E runner for the nested ``hare/`` project.
 
 Distinct from ``scripts/alignment_runner.py`` (which targets the outer repo's
 module-level alignment corpus). This one runs the *real* CLI as a subprocess
@@ -11,8 +11,9 @@ A case dict:
     {
       "case_id": str,
       "entrypoint": {"argv": [...], "stdin": str|None},
-      "fixture": "alignment/fixtures/<name>.json"   # optional; sets HARE_MODEL_FIXTURE
-      "fs": {"seed": ["README.md", ...]},           # optional; copied from alignment/seeds/
+      "fixture": "alignment/fixtures/<name>.json"   # optional legacy form
+      "fixture": "hare/alignment/fixtures/<name>.json"  # optional canonical form
+      "fs": {"seed": ["README.md", ...]},           # optional; copied from hare/alignment/seeds/
       "env": {...},                                  # optional extra env
       "expected": {"exit_code": int, "stdout_kind": "text"|"json"|"ndjson"},
       "policy": {...},
@@ -30,12 +31,24 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-REPO = Path(__file__).resolve().parents[1]  # the hare/ package dir
-FIXTURES_ROOT = REPO / "alignment" / "fixtures"
-SEEDS_ROOT = REPO / "alignment" / "seeds"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+HARE_ROOT = REPO_ROOT / "hare"
+FIXTURES_ROOT = HARE_ROOT / "alignment" / "fixtures"
+SEEDS_ROOT = HARE_ROOT / "alignment" / "seeds"
 
-sys.path.insert(0, str(REPO / "alignment"))
+sys.path.insert(0, str(HARE_ROOT / "alignment"))
 from golden_normalize import snapshot_files  # noqa: E402
+
+
+def _resolve_hare_fixture_path(fixture: str) -> Path:
+    path = Path(fixture)
+    if path.is_absolute():
+        return path
+    if path.parts[:2] == ("hare", "alignment"):
+        return (REPO_ROOT / path).resolve()
+    if path.parts[:1] == ("alignment",):
+        return (HARE_ROOT / path).resolve()
+    return (HARE_ROOT / path).resolve()
 
 
 def _parse_stdout(stdout: str, stdout_kind: str) -> list[Any]:
@@ -53,14 +66,27 @@ def _parse_stdout(stdout: str, stdout_kind: str) -> list[Any]:
     return events
 
 
-def _prepare_env(case: dict[str, Any], *, base_url: str | None) -> dict[str, str]:
+def _prepare_env(
+    case: dict[str, Any],
+    *,
+    base_url: str | None,
+    sandbox_root: Path,
+) -> dict[str, str]:
     env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [str(REPO_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     for key, value in case.get("env", {}).items():
         env[key] = value
     # Layer A: deterministic in-process fixture replay
     fixture = case.get("fixture")
     if fixture and base_url is None:
-        env["HARE_MODEL_FIXTURE"] = str((REPO / fixture).resolve())
+        env["HARE_MODEL_FIXTURE"] = str(_resolve_hare_fixture_path(fixture))
+    config_root = str((sandbox_root / ".hare").resolve())
+    env["HARE_CONFIG_DIR"] = config_root
+    env["CLAUDE_CONFIG_DIR"] = config_root
     # Layer B: real HTTP path against a mock Anthropic server
     if base_url is not None:
         env["ANTHROPIC_BASE_URL"] = base_url
@@ -94,8 +120,8 @@ def run_case(case: dict[str, Any], *, base_url: str | None = None) -> dict[str, 
     (Layer B) instead of the in-process fixture (Layer A)."""
     entrypoint = case["entrypoint"]
     expected = case.get("expected", {})
-    env = _prepare_env(case, base_url=base_url)
     sandbox = _make_sandbox(case)
+    env = _prepare_env(case, base_url=base_url, sandbox_root=sandbox)
     stdin_text = entrypoint.get("stdin")
 
     try:
@@ -106,7 +132,7 @@ def run_case(case: dict[str, Any], *, base_url: str | None = None) -> dict[str, 
             text=True,
             timeout=120,
             env=env,
-            cwd=str(sandbox),
+            cwd=sandbox,
         )
         exit_code = proc.returncode
         stdout, stderr = proc.stdout, proc.stderr

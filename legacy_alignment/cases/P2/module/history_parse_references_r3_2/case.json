@@ -1,0 +1,26 @@
+{
+  "case_id": "history.parse_references.r3_2",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "ref 2",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "[Pasted text #999]"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

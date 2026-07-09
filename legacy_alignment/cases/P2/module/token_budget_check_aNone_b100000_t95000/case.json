@@ -1,0 +1,29 @@
+{
+  "case_id": "token_budget.check.anone_b100000_t95000",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "checkTokenBudget agent=None budget=100000 tokens=95000",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": null,
+      "budget": 100000,
+      "tokens": 95000
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

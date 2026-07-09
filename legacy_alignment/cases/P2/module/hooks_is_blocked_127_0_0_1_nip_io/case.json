@@ -1,0 +1,27 @@
+{
+  "case_id": "hooks.is_blocked.127_0_0_1_nip_io",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isBlockedAddress '127.0.0.1.nip.io'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "hooks.is_blocked_address",
+    "module_kwargs": {
+      "address": "127.0.0.1.nip.io"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

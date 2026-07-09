@@ -1,0 +1,28 @@
+{
+  "case_id": "history.format_pasted_ref.id42_n7",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "formatPastedTextRef id=42 numLines=7",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.format_pasted_ref",
+    "module_kwargs": {
+      "id": 42,
+      "num_lines": 7
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

@@ -18,7 +18,7 @@
       "--dangerously-skip-permissions"
     ]
   },
-  "fixture": "alignment/fixtures/tool_read_then_answer.json",
+  "fixture": "hare/alignment/fixtures/tool_read_then_answer.json",
   "fs": {
     "seed": [
       "README.md"

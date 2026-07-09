@@ -2,7 +2,7 @@
   "case_id": "chat.code_block_result",
   "priority": "P1",
   "entrypoint": {"argv": ["-p", "show me a python function"]},
-  "fixture": "alignment/fixtures/code_block_result.json",
+  "fixture": "hare/alignment/fixtures/code_block_result.json",
   "expected": {"exit_code": 0, "stdout_kind": "text"},
   "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
 }

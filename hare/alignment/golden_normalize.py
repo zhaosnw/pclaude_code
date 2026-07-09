@@ -26,6 +26,7 @@ _DURATION_KEYS = {
     "timestamp",
 }
 _DROP_TOPLEVEL = {"duration_ms"}
+_RUNTIME_STATE_DIRS = (".hare", ".claude")
 
 
 def _scrub_str(s: str, sandbox_root: str | None) -> str:
@@ -84,6 +85,9 @@ def snapshot_files(root: Path) -> list[dict[str, Any]]:
     for p in sorted(root.rglob("*")):
         if not p.is_file():
             continue
+        rel_path = p.relative_to(root)
+        if rel_path.parts and rel_path.parts[0] in _RUNTIME_STATE_DIRS:
+            continue
         data = p.read_bytes()
         try:
             text: str | None = data.decode("utf-8").replace(root_str, "<SANDBOX>")
@@ -91,7 +95,7 @@ def snapshot_files(root: Path) -> list[dict[str, Any]]:
             text = None
         snap.append(
             {
-                "path": str(p.relative_to(root)),
+                "path": str(rel_path),
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "text": text,
             }

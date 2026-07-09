@@ -14,8 +14,17 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_ROOT = PROJECT_ROOT / "alignment"
+ALIGNMENT_ROOT = PROJECT_ROOT / "legacy_alignment"
 CASES_ROOT = ALIGNMENT_ROOT / "cases"
+
+
+def _ensure_import_paths() -> None:
+    project_root = str(PROJECT_ROOT)
+    scripts_root = str(Path(__file__).resolve().parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if scripts_root not in sys.path:
+        sys.path.insert(0, scripts_root)
 
 
 def load_case(case_path: Path) -> dict[str, Any]:
@@ -42,6 +51,11 @@ def _phase1_notes(case: dict[str, Any]) -> list[str]:
 
 def _prepare_env(case: dict[str, Any]) -> dict[str, str]:
     env = dict(os.environ)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [str(PROJECT_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     for key, value in case.get("env", {}).items():
         env[key] = value
     return env
@@ -176,9 +190,7 @@ def run_case_module(case: dict[str, Any]) -> dict[str, Any]:
     kwargs = dict(entrypoint.get("module_kwargs", {}))
 
     # Try generic module dispatch first (handles history.*, task.*, etc.)
-    _scripts_dir = str(Path(__file__).resolve().parent)
-    if _scripts_dir not in sys.path:
-        sys.path.insert(0, _scripts_dir)
+    _ensure_import_paths()
     try:
         from alignment_mocks import run_generic_module_case as _generic
     except ImportError:
@@ -247,9 +259,7 @@ def run_case_sdk(case: dict[str, Any]) -> dict[str, Any]:
 def run_case_query(case: dict[str, Any]) -> dict[str, Any]:
     """Run a query loop case with scripted model via alignment_mocks."""
     # scripts/ is sibling to the hare/ package, not inside it
-    _scripts_dir = str(Path(__file__).resolve().parent)
-    if _scripts_dir not in sys.path:
-        sys.path.insert(0, _scripts_dir)
+    _ensure_import_paths()
     try:
         from alignment_mocks import run_query_case as _run
     except ImportError:
@@ -275,6 +285,8 @@ def run_case_query(case: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     import argparse
+
+    _ensure_import_paths()
 
     parser = argparse.ArgumentParser(description="Run Python alignment cases")
     parser.add_argument("--priority", default="P0")

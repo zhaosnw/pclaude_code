@@ -1,0 +1,50 @@
+{
+  "case_id": "cli.print.exit_code_nonzero_on_error",
+  "priority": "P0",
+  "modules": [
+    "cli/print.ts",
+    "hare/hare/cli/print_handler.py",
+    "hare/hare/cli/structured_io.py",
+    "hare/hare/entrypoints/cli.py"
+  ],
+  "description": "CLI returns non-zero exit code on error (invalid output format)",
+  "entrypoint": {
+    "kind": "cli",
+    "argv": [
+      "--output-format",
+      "invalid_format"
+    ],
+    "stdin": null
+  },
+  "env": {
+    "TZ": "UTC",
+    "LANG": "C.UTF-8"
+  },
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {
+    "exit_code": 2
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "state.exit_code",
+        "reason": "Phase 2: exact exit code mapping may differ between TS and Python",
+        "expires_at": "2099-01-01",
+        "kind": "number"
+      },
+      {
+        "path": "stderr",
+        "reason": "Phase 2: error text varies between arg parsers",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

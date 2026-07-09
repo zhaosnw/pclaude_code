@@ -15,7 +15,7 @@
       "json"
     ]
   },
-  "fixture": "alignment/fixtures/tool_bash_deny.json",
+  "fixture": "hare/alignment/fixtures/tool_bash_deny.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "json"

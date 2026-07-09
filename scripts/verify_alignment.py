@@ -7,9 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TS_SRC = PROJECT_ROOT / "recovered-from-cli-js-map" / "src"
-ALIGNMENT_FILE = PROJECT_ROOT / "alignment_data.json"
+ALIGNMENT_FILE = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 PY_PACKAGE_ROOT = PROJECT_ROOT / "hare" / "hare"
 
 

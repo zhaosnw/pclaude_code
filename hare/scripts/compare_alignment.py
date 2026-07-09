@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_ROOT = PROJECT_ROOT / "alignment"
+ALIGNMENT_ROOT = PROJECT_ROOT / "legacy_alignment"
 CASES_ROOT = ALIGNMENT_ROOT / "cases"
 if str(ALIGNMENT_ROOT) not in sys.path:
     sys.path.insert(0, str(ALIGNMENT_ROOT))
@@ -319,7 +319,7 @@ def main() -> int:
     parser.add_argument("--ts", required=True, help="TS runner JSONL output")
     parser.add_argument("--py", required=True, help="Python runner JSONL output")
     parser.add_argument(
-        "--cases-dir", default=str(CASES_ROOT), help="alignment/cases root"
+        "--cases-dir", default=str(CASES_ROOT), help="legacy_alignment/cases root"
     )
     parser.add_argument("--priority", default="P0,P1,P2,P3")
     parser.add_argument("--weighted-min", type=float, default=0.999)

@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.has_wildcards.just_plain_text",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "hasWildcards 'just.plain.text'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.has_wildcards",
+    "module_kwargs": {
+      "pattern": "just.plain.text"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

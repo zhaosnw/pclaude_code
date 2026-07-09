@@ -1,0 +1,27 @@
+{
+  "case_id": "history.pasted_text_num_lines.two_lines",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "getPastedTextRefNumLines with two_lines",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.pasted_text_num_lines",
+    "module_kwargs": {
+      "text": "line1\nline2"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

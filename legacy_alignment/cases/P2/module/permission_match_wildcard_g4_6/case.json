@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.match_wildcard.g4_6",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "match g4_6",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.match_wildcard",
+    "module_kwargs": {
+      "pattern": "sort *",
+      "command": "sort file"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

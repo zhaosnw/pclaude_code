@@ -14,13 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from hare.utils.log import log_error
+from hare.utils.env_utils import get_hare_config_home_dir
+from hare.utils.session_storage_portable import sanitize_path
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
-_transcript_base = Path.home() / ".hare" / "transcripts"
-_projects_base = Path.home() / ".hare" / "projects"
+_transcript_base: Path | None = None
 
 # Session-scoped file pointer (lazy-materialized per session switch)
 _session_file: Path | None = None
@@ -28,17 +29,23 @@ _session_file_msg_cache: set[str] | None = None
 
 
 def get_transcript_path(session_id: str) -> str:
-    return str(_transcript_base / f"{session_id}.jsonl")
+    if _transcript_base is not None:
+        return str(_transcript_base / f"{session_id}.jsonl")
+
+    from hare.bootstrap.state import get_original_cwd, get_session_project_dir
+
+    project_dir = get_session_project_dir() or get_project_dir(get_original_cwd())
+    return str(Path(project_dir) / f"{session_id}.jsonl")
 
 
 def get_project_dir(cwd: str | None = None) -> str:
-    """Memoized mapping: cwd -> ~/.hare/projects/<sanitized-name>."""
+    """Map a cwd to <config>/projects/<sanitized-name>, matching TS layout."""
     if cwd is None:
-        from hare.utils.cwd import get_cwd as _get_cwd
+        from hare.bootstrap.state import get_original_cwd as _get_original_cwd
 
-        cwd = _get_cwd()
-    sanitized = re.sub(r"[^a-zA-Z0-9_.-]", "_", cwd.replace("/", "_"))
-    return str(_projects_base / sanitized)
+        cwd = _get_original_cwd()
+    projects_base = Path(get_hare_config_home_dir()) / "projects"
+    return str(projects_base / sanitize_path(cwd))
 
 
 # ---------------------------------------------------------------------------

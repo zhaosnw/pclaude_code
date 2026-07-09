@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-ALIGNMENT_DATA = PROJECT_ROOT.parent / "alignment_data.json"
+ALIGNMENT_DATA = PROJECT_ROOT.parent / "legacy_alignment" / "alignment_data.json"
 
 
 def main() -> int:

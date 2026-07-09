@@ -1,0 +1,27 @@
+{
+  "case_id": "history.pasted_text_num_lines.only_newlines",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "getPastedTextRefNumLines with only_newlines",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.pasted_text_num_lines",
+    "module_kwargs": {
+      "text": "\n\n\n"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

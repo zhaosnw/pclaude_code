@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.escape_rule.already__escaped",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "escapeRuleContent 'already\\\\escaped'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.escape_rule",
+    "module_kwargs": {
+      "content": "already\\\\escaped"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

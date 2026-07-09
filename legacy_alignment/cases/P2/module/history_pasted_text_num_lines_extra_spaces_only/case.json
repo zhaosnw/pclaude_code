@@ -1,0 +1,27 @@
+{
+  "case_id": "history.pasted_text_num_lines.extra_spaces_only",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "getPastedTextRefNumLines extra spaces_only",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.pasted_text_num_lines",
+    "module_kwargs": {
+      "text": "   \n   \n   "
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

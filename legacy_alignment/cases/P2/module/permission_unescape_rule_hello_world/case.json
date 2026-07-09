@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.unescape_rule.hello_world",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "unescapeRuleContent 'hello:world'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.unescape_rule",
+    "module_kwargs": {
+      "content": "hello:world"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

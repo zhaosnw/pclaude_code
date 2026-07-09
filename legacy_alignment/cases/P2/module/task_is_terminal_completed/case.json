@@ -1,0 +1,27 @@
+{
+  "case_id": "task.is_terminal.completed",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isTerminalTaskStatus for completed",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.is_terminal",
+    "module_kwargs": {
+      "status": "completed"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

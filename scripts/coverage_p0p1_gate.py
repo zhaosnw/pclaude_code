@@ -9,8 +9,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_DATA = PROJECT_ROOT / "alignment_data.json"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 
 def load_p0p1_modules(require_done: bool = True) -> set[str]:

@@ -1,4 +1,4 @@
-"""Tests for alignment/normalize.py — strip non-deterministic fields."""
+"""Tests for legacy_alignment/normalize.py strip non-deterministic fields."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import json
 import sys
 from pathlib import Path
 
-# Add alignment/ to path (it's at the project root: claude-code-recover-and-python-reset/alignment/)
-_alignment_dir = str(Path(__file__).resolve().parents[2] / "alignment")
+# Add legacy_alignment/ to path for old Phase 1 normalization helpers.
+_alignment_dir = str(Path(__file__).resolve().parents[1] / "legacy_alignment")
 if _alignment_dir not in sys.path:
     sys.path.insert(0, _alignment_dir)
 

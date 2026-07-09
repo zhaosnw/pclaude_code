@@ -1,0 +1,35 @@
+{
+  "case_id": "compact.prompt.get_prompt",
+  "priority": "P1",
+  "modules": [
+    "prompt.ts",
+    "hare/hare/services/compact/prompt.py"
+  ],
+  "description": "getCompactPrompt returns valid prompt string",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "mcp.hash_config",
+    "module_kwargs": {
+      "config": {}
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "events",
+        "reason": "Compact prompt structure verified",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

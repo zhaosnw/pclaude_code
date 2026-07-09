@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.has_wildcards.has_star",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "hasWildcards 'has*star'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.has_wildcards",
+    "module_kwargs": {
+      "pattern": "has*star"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

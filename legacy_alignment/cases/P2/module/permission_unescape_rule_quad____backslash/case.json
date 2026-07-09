@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.unescape_rule.quad____backslash",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "unescapeRuleContent 'quad\\\\\\\\backslash'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.unescape_rule",
+    "module_kwargs": {
+      "content": "quad\\\\\\\\backslash"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

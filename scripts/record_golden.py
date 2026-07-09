@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Record golden output by driving the TS reference Claude Code against the
-mock Anthropic server, so hare can be diffed against the *real* reference.
+"""Record hare/alignment golden output against the TS reference.
 
 Usage:
     CLAUDE_TS_CLI="node /path/to/cli.js" python scripts/record_golden.py <case_id>
 
-Reads alignment/cases/**/case.json (matching case_id), boots the mock server
-with case.fixture, runs the TS CLI with ANTHROPIC_BASE_URL pointed at it,
-normalizes the captured stdout/exit, writes alignment/golden/<...>/golden.json.
+Reads hare/alignment/cases/**/case.json (matching case_id), boots the mock
+server with case.fixture, runs the TS CLI with ANTHROPIC_BASE_URL pointed at
+it, normalizes the captured stdout/exit, writes
+hare/alignment/golden/<...>/golden.json.
 
 The recorded golden is then what hare (driven by the SAME fixture via Layer A)
 is compared against in tests/e2e/test_e2e_cases.py.
@@ -24,15 +24,27 @@ import tempfile
 import threading
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]  # hare/
-sys.path.insert(0, str(REPO / "scripts"))
-sys.path.insert(0, str(REPO / "alignment"))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HARE_ROOT = REPO_ROOT / "hare"
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+sys.path.insert(0, str(HARE_ROOT / "alignment"))
 
 from mock_anthropic_server import make_server  # noqa: E402
 from golden_normalize import normalize_result, snapshot_files  # noqa: E402
 
-CASES_DIR = REPO / "alignment" / "cases"
-GOLDEN_DIR = REPO / "alignment" / "golden"
+CASES_DIR = HARE_ROOT / "alignment" / "cases"
+GOLDEN_DIR = HARE_ROOT / "alignment" / "golden"
+
+
+def _resolve_hare_fixture_path(fixture: str) -> Path:
+    path = Path(fixture)
+    if path.is_absolute():
+        return path
+    if path.parts[:2] == ("hare", "alignment"):
+        return (REPO_ROOT / path).resolve()
+    if path.parts[:1] == ("alignment",):
+        return (HARE_ROOT / path).resolve()
+    return (HARE_ROOT / path).resolve()
 
 
 def find_case(case_id: str) -> Path:
@@ -62,7 +74,7 @@ def main() -> None:
             f"not recorded from TS."
         )
 
-    server = make_server(REPO / fixture, port=0)
+    server = make_server(_resolve_hare_fixture_path(fixture), port=0)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     port = server.server_address[1]
 
@@ -85,7 +97,7 @@ def main() -> None:
     # Same seed filesystem the e2e_runner gives hare, so fs-dependent tools
     # (Read/etc.) see identical inputs on both sides of the differential.
     sandbox = tempfile.mkdtemp(prefix="ts-ref-sbx-")
-    seeds_root = REPO / "alignment" / "seeds"
+    seeds_root = HARE_ROOT / "alignment" / "seeds"
     for rel in case.get("fs", {}).get("seed", []):
         src = seeds_root / rel
         dst = Path(sandbox) / rel

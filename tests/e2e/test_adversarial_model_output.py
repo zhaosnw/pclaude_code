@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-REPO = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _run_fixture(responses, argv_extra=None):
@@ -23,7 +23,14 @@ def _run_fixture(responses, argv_extra=None):
         fp = Path(d, "adv.json")
         fp.write_text(json.dumps(fx), encoding="utf-8")
         env = dict(os.environ)
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        pythonpath_entries = [str(REPO_ROOT)]
+        if existing_pythonpath:
+            pythonpath_entries.append(existing_pythonpath)
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
         env["HARE_MODEL_FIXTURE"] = str(fp)
+        env["HARE_CONFIG_DIR"] = str(Path(d, ".hare"))
+        env["CLAUDE_CONFIG_DIR"] = env["HARE_CONFIG_DIR"]
         env["ANTHROPIC_API_KEY"] = "test-key-not-used"
         proc = subprocess.run(
             [sys.executable, "-m", "hare", "-p", "go",

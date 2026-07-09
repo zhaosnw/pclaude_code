@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.unescape_rule.text_with__mixed",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "unescapeRuleContent 'text\\with\\\\mixed'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.unescape_rule",
+    "module_kwargs": {
+      "content": "text\\with\\\\mixed"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

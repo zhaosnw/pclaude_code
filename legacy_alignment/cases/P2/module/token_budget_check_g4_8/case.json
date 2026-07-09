@@ -1,0 +1,28 @@
+{
+  "case_id": "token_budget.check.g4_8",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "tb g4_8",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": null,
+      "budget": 1000000,
+      "tokens": 999999
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

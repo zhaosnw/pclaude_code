@@ -9,7 +9,7 @@
       "json"
     ]
   },
-  "fixture": "alignment/fixtures/single_turn_hello.json",
+  "fixture": "hare/alignment/fixtures/single_turn_hello.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "json"

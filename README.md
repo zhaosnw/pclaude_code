@@ -2,12 +2,26 @@
 
 `pclaude_code` is a recovered Python-first port of the Claude Code CLI. The main Python package is published here as `hare`, and the repo also keeps a recovered frontend tree plus alignment, audit, and E2E assets used to compare Python behavior with the original TypeScript implementation.
 
+## Current Status
+
+- The primary Python CLI implementation lives under `hare/`.
+- The current golden E2E alignment assets live under `hare/alignment/`.
+- The old 519-case Phase1 / py-only corpus lives under `legacy_alignment/`.
+- Root `alignment/` is only a compatibility mirror layer and should not be used as the default home for new E2E assets.
+
+For the latest verified repo status, start with:
+
+- [REVIEW_2026-07-02.md](REVIEW_2026-07-02.md)
+- [docs/alignment-status/2026-07-07.md](docs/alignment-status/2026-07-07.md)
+
 ## What is in this repo
 
 - `hare/`: main Python package and CLI implementation
 - `frontend/`: recovered frontend / TS source tree kept for reference and parity work
 - `tests/`: unit, integration, property, E2E, and live smoke tests
-- `alignment/`: behavioral fixtures, goldens, seeds, and comparison inputs
+- `hare/alignment/`: current E2E fixtures, goldens, seeds, and golden-testing assets
+- `legacy_alignment/`: legacy 519-case Phase1 / py-only alignment corpus
+- `alignment/`: transitional compatibility mirror tree; not the canonical home for new E2E assets
 - `scripts/`: alignment runners, mock servers, regression checks, and audit helpers
 - `docs/`: notes on alignment findings and E2E testing
 
@@ -69,7 +83,12 @@ make all
 
 ## Alignment Workflow
 
-This repo keeps a dedicated alignment toolchain to measure Python behavior against the recovered TypeScript reference.
+This repo keeps two alignment tracks:
+
+- `hare/alignment/` for the current golden-based CLI E2E differential tests
+- `legacy_alignment/` for the older Phase1 / py-only oracle corpus
+
+The root `alignment/` directory still exists for compatibility, but new assets and default workflows should target `hare/alignment/`.
 
 Examples:
 
@@ -84,7 +103,7 @@ make align-regressions
 For a single mock SSE server:
 
 ```bash
-make mock-server FIXTURE=alignment/fixtures/single_turn_hello.json PORT=8089
+make mock-server FIXTURE=hare/alignment/fixtures/single_turn_hello.json PORT=8089
 ```
 
 ## Frontend Notes
@@ -96,12 +115,15 @@ Large generated dependency folders such as `node_modules/` are intentionally ign
 ## Repository Hygiene
 
 - Do not commit `node_modules/`, coverage artifacts, or Python cache files
-- Use the checked-in fixtures and goldens when validating alignment changes
+- Put new golden E2E assets under `hare/alignment/`
+- Keep old Phase1-style oracle assets under `legacy_alignment/`
 - Prefer `make` targets when you want behavior consistent with the existing workflow
 
 ## Related Files
 
 - [Makefile](Makefile)
+- [REVIEW_2026-07-02.md](REVIEW_2026-07-02.md)
+- [docs/alignment-status/README.md](docs/alignment-status/README.md)
 - [docs/alignment-findings.md](docs/alignment-findings.md)
 - [docs/e2e-testing.md](docs/e2e-testing.md)
 - [pyproject.toml](pyproject.toml)

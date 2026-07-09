@@ -1,9 +1,9 @@
-"""Parametrized pytest runner for all alignment/cases.
+"""Parametrized pytest runner for all legacy_alignment/cases.
 
-Each case.json found under alignment/cases/ is expanded into a test that:
+Each case.json found under legacy_alignment/cases/ is expanded into a test that:
 1. Runs the Python alignment runner for that case
 2. Asserts status is ok (or skipped for known-deferred cases)
-3. Validates the output shape matches alignment/schema/output.schema.json
+3. Validates the output shape matches legacy_alignment/schema/output.schema.json
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-CASES_DIR = PROJECT_ROOT / "alignment" / "cases"
-RUNNER = PROJECT_ROOT / "hare" / "scripts" / "alignment_runner.py"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CASES_DIR = PROJECT_ROOT / "legacy_alignment" / "cases"
+RUNNER = PROJECT_ROOT / "scripts" / "alignment_runner.py"
 
 
 def _discover_cases() -> list[tuple[str, str, Path]]:
@@ -116,7 +116,7 @@ def test_alignment_case_schema_valid(
     """Validate case.json passes schema validation."""
     import jsonschema
 
-    schema_path = PROJECT_ROOT / "alignment" / "schema" / "case.schema.json"
+    schema_path = PROJECT_ROOT / "legacy_alignment" / "schema" / "case.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     case = json.loads(case_path.read_text(encoding="utf-8"))
     jsonschema.validate(case, schema)

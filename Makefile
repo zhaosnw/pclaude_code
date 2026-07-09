@@ -1,4 +1,4 @@
-.PHONY: help install test test-unit test-integration test-alignment e2e test-live mock-server e2e-record lint format typecheck mypy-regression security clean coverage stub-check stub-priority align-check imports-check alignment-quick alignment-full audit-sizediff replay all
+.PHONY: help install test test-unit test-integration test-alignment e2e test-live mock-server e2e-record lint format typecheck mypy-regression security clean coverage stub-check stub-priority align-check imports-check alignment-quick alignment-full alignment-guardrails audit-sizediff replay all
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -37,7 +37,7 @@ e2e: ## Run deterministic CLI E2E (Layer A fixtures, no network, no billing)
 test-live: ## Run live end-to-end smoke vs a REAL model (needs ANTHROPIC_* backend; costs tokens)
 	HARE_LIVE_TESTS=1 python -m pytest tests/live/ -v --tb=short --timeout=200
 
-mock-server: ## Boot mock Anthropic SSE server (usage: make mock-server FIXTURE=alignment/fixtures/x.json PORT=8089)
+mock-server: ## Boot mock Anthropic SSE server (usage: make mock-server FIXTURE=hare/alignment/fixtures/x.json PORT=8089)
 	python scripts/mock_anthropic_server.py $(FIXTURE) $(PORT)
 
 e2e-record: ## Re-record a case's golden from the TS reference (needs CLAUDE_TS_CLI; usage: make e2e-record CASE=chat.single_turn)
@@ -105,6 +105,21 @@ alignment-full: ## Run P0+P1 alignment (Python only)
 	python scripts/alignment_runner.py --priority P0,P1 --out /tmp/py-alignment.jsonl
 	python scripts/compare_alignment.py --ts /dev/null --py /tmp/py-alignment.jsonl --priority P0,P1 --py-only --weighted-min 1.00
 
+alignment-guardrails: ## Run the de-mirroring / fixture-canonicalization guardrail suite
+	python -m pytest \
+		tests/test_record_golden_paths.py \
+		hare/tests/test_hare_record_golden_paths.py \
+		tests/test_alignment_case_fixture_paths.py \
+		hare/tests/test_hare_alignment_case_fixture_paths.py \
+		tests/test_alignment_legacy_fixture_ref_allowlist.py \
+		hare/tests/test_hare_alignment_legacy_fixture_ref_allowlist.py \
+		tests/test_root_alignment_ref_allowlist.py \
+		hare/tests/test_hare_root_alignment_ref_allowlist.py \
+		tests/test_root_alignment_string_ref_allowlist.py \
+		hare/tests/test_hare_root_alignment_string_ref_allowlist.py \
+		tests/test_e2e_runner.py \
+		hare/tests/test_hare_e2e_runner.py -q
+
 replay: ## Replay a single alignment case (usage: make replay CASE=cli.version.both_flags)
 	python scripts/alignment_runner.py --case $(CASE) --out /tmp/py-alignment.jsonl
 	python scripts/compare_alignment.py --ts /dev/null --py /tmp/py-alignment.jsonl --priority P0,P1,P2,P3
@@ -115,7 +130,7 @@ audit-sizediff: ## Run TS↔Py size diff audit
 stub-priority: ## Detect stubs by priority (P0=0, P1=0 gate)
 	python scripts/detect_stubs_priority.py --p0-fail
 
-gen-priority: ## Auto-assign P0-P3 priorities to alignment_data.json
+gen-priority: ## Auto-assign P0-P3 priorities in legacy_alignment/alignment_data.json
 	python scripts/gen_alignment_priority.py
 
 coverage-p0p1: ## Gate P0/P1 module coverage from coverage.xml
@@ -130,7 +145,7 @@ property: ## Run Hypothesis property-based invariant tests
 property-quick: ## Run property tests with fewer examples (fast)
 	python -m pytest tests/property/ -v --tb=short --hypothesis-profile=ci
 
-alignment-cases: ## Run all alignment/cases through the Python oracle
+alignment-cases: ## Run all legacy_alignment/cases through the Python oracle
 	python scripts/alignment_runner.py --priority P0,P1,P2 --out /tmp/py-alignment.jsonl
 	python scripts/compare_alignment.py --ts /dev/null --py /tmp/py-alignment.jsonl --priority P0,P1,P2
 

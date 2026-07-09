@@ -9,9 +9,9 @@ import re
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PY_PACKAGE_ROOT = PROJECT_ROOT / "hare" / "hare"
-ALIGNMENT_DATA = PROJECT_ROOT / "alignment_data.json"
+ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 TODO_PATTERN = re.compile(r"#\s*(TODO|FIXME|HACK|XXX|STUB)\b", re.IGNORECASE)
 NIE_PATTERN = re.compile(r"\braise\s+NotImplementedError\b")

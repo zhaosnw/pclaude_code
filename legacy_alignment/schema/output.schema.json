@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Oracle Runner Output",
+  "description": "Single JSON object emitted per case by alignment runners.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "priority",
+    "status",
+    "events",
+    "stdout",
+    "stderr",
+    "files",
+    "state",
+    "error",
+    "duration_ms"
+  ],
+  "properties": {
+    "case_id": { "type": "string" },
+    "priority": { "type": "string", "enum": ["P0", "P1", "P2", "P3"] },
+    "status": { "enum": ["ok", "error", "timeout", "skipped"] },
+    "events": { "type": "array", "items": {} },
+    "stdout": { "type": "string" },
+    "stderr": { "type": "string" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string" }
+        }
+      }
+    },
+    "state": { "type": "object" },
+    "error": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "code", "message_normalized"],
+          "properties": {
+            "kind": { "type": "string" },
+            "code": { "type": "string" },
+            "message_normalized": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "duration_ms": { "type": "number" },
+    "phase1_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

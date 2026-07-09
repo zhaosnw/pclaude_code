@@ -9,9 +9,9 @@ import json
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TS_ROOT = PROJECT_ROOT / "recovered-from-cli-js-map" / "src"
-ALIGNMENT_DATA = PROJECT_ROOT / "alignment_data.json"
+ALIGNMENT_DATA = PROJECT_ROOT / "legacy_alignment" / "alignment_data.json"
 
 
 def count_lines(path: Path) -> int | None:

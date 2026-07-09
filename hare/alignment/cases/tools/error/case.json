@@ -14,7 +14,7 @@
       "--dangerously-skip-permissions"
     ]
   },
-  "fixture": "alignment/fixtures/tool_error.json",
+  "fixture": "hare/alignment/fixtures/tool_error.json",
   "expected": {
     "exit_code": 0,
     "stdout_kind": "text"

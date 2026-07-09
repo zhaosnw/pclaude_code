@@ -1,0 +1,26 @@
+{
+  "case_id": "history.parse_references.g4_11",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "ref g4_11",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "[Pasted text #12]"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

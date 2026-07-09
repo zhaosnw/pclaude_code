@@ -5,7 +5,7 @@
     "argv": ["-p", "track these tasks", "--permission-mode", "bypassPermissions"],
     "ts_argv": ["-p", "track these tasks", "--dangerously-skip-permissions"]
   },
-  "fixture": "alignment/fixtures/tool_todowrite.json",
+  "fixture": "hare/alignment/fixtures/tool_todowrite.json",
   "expected": {"exit_code": 0, "stdout_kind": "text"},
   "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}
 }

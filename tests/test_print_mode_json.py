@@ -10,22 +10,31 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-FIXTURE = REPO / "alignment" / "fixtures" / "single_turn_hello.json"
+FIXTURE = REPO / "hare" / "alignment" / "fixtures" / "single_turn_hello.json"
 
 
 def _run(argv):
     env = dict(os.environ)
     env["HARE_MODEL_FIXTURE"] = str(FIXTURE)
     env["ANTHROPIC_API_KEY"] = "test-key-not-used"
-    return subprocess.run(
-        [sys.executable, "-m", "hare", *argv],
-        capture_output=True, text=True, timeout=60, env=env, cwd=str(REPO),
-    )
+    with tempfile.TemporaryDirectory(prefix="hare-print-json-") as tmpdir:
+        config_dir = Path(tmpdir) / ".hare"
+        env["HARE_CONFIG_DIR"] = str(config_dir)
+        env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+        return subprocess.run(
+            [sys.executable, "-m", "hare", *argv],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env=env,
+            cwd=str(REPO),
+        )
 
 
 @pytest.mark.integration

@@ -1,0 +1,35 @@
+{
+  "case_id": "permission.parse_rule.deny_rm",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "parseRule with rule='deny rm'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.parse_rule",
+    "module_kwargs": {
+      "rule_string": "deny rm"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false,
+    "allow_delta": [
+      {
+        "path": "events",
+        "reason": "TS parsePermissionRule and Python parse_permission_rule are different functions with different return shapes. P2 best-effort alignment.",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.tmp-hare-config/
 
 node_modules/
 frontend/node_modules/
@@ -11,3 +12,6 @@ hare/frontend/node_modules/
 .coverage
 coverage.xml
 htmlcov/
+
+recovered-from-cli-js-map/
+claude-code-recover-and-python-reset/

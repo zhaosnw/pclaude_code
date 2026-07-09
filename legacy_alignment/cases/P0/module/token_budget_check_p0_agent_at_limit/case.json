@@ -1,0 +1,29 @@
+{
+  "case_id": "token_budget.check.p0_agent_at_limit",
+  "priority": "P0",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "checkTokenBudget P0 agent_at_limit",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": "main",
+      "budget": 50000,
+      "tokens": 50000
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

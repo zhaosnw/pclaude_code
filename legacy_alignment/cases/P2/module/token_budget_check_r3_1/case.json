@@ -1,0 +1,28 @@
+{
+  "case_id": "token_budget.check.r3_1",
+  "priority": "P2",
+  "modules": [
+    "various"
+  ],
+  "description": "tb 1",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": null,
+      "budget": 5000,
+      "tokens": 2500
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

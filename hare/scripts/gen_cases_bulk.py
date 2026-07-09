@@ -10,7 +10,7 @@ import secrets
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CASES_DIR = PROJECT_ROOT / "alignment" / "cases"
+CASES_DIR = PROJECT_ROOT / "legacy_alignment" / "cases"
 
 def make_case(case_id: str, priority: str, module_func: str,
               module_kwargs: dict, description: str = "",

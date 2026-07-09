@@ -1,0 +1,27 @@
+{
+  "case_id": "task.is_terminal.killed",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "isTerminalTaskStatus for killed",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.is_terminal",
+    "module_kwargs": {
+      "status": "killed"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": false
+  }
+}

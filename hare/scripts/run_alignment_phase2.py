@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ALIGNMENT_ROOT = PROJECT_ROOT / "alignment"
+ALIGNMENT_ROOT = PROJECT_ROOT / "legacy_alignment"
 CASES_ROOT = ALIGNMENT_ROOT / "cases"
 PY_RUNNER = PROJECT_ROOT / "hare" / "scripts" / "alignment_runner.py"
 COMPARE = PROJECT_ROOT / "hare" / "scripts" / "compare_alignment.py"

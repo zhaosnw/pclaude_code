@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RUNNER = PROJECT_ROOT / "hare" / "scripts" / "alignment_runner.py"
-CASES_ROOT = PROJECT_ROOT / "alignment" / "cases"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RUNNER = PROJECT_ROOT / "scripts" / "alignment_runner.py"
+CASES_ROOT = PROJECT_ROOT / "legacy_alignment" / "cases"
 
 
 def _run_case(case_id: str) -> dict:

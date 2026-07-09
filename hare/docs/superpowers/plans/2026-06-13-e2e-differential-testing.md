@@ -1,5 +1,9 @@
 # Hare 端到端差分测试框架 Implementation Plan
 
+> Historical planning note (updated 2026-07-07): this file documents the 2026-06-13 implementation plan and its then-current assumptions.
+> It should not be used as the current status source.
+> For current verified state and directory ownership, use `REVIEW_2026-07-02.md`, `docs/alignment-status/2026-07-07.md`, and `docs/e2e-testing.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 给 hare 建一套确定性的端到端测试框架——用同一份"模型行为 fixture",既能让 hare 自我防回归(快、无网络),又能把 hare 的真实输出和 TS 原版 Claude Code 的输出做差分对齐(真·正确性 oracle)。
@@ -13,7 +17,7 @@
 
 ---
 
-## ⚠️ 执行期修正(2026-06-13,棕地现实)
+## ⚠️ 执行期修正(2026-06-13,棕地现实; 历史记录)
 
 执行中发现计划原前提多处与现实不符,已与用户对齐方向。**真实情况:**
 - git 仓库根是**外层** `claude-code-recover-and-python-reset`;`hare/` 是进行中的迁移目标子目录。

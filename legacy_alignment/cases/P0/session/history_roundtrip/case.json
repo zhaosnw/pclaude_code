@@ -1,0 +1,29 @@
+{
+  "case_id": "session.history.jsonl_roundtrip",
+  "priority": "P0",
+  "modules": [
+    "history.ts",
+    "hare/hare/history.py"
+  ],
+  "description": "Session history parse \u2192 serialize round-trip preserves references",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": ""
+    }
+  },
+  "env": {},
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {},
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": []
+  }
+}

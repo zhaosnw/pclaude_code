@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "alignment"))
+sys.path.insert(0, str(REPO / "hare" / "alignment"))
 
 from golden_normalize import normalize_result  # noqa: E402
 

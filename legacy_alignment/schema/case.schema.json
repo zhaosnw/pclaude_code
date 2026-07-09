@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Alignment Case Definition",
+  "description": "Schema for case.json used by Phase 1 alignment runners.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "priority", "entrypoint", "mocks", "expected", "policy"],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9._-]+$"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"]
+    },
+    "modules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "description": { "type": "string" },
+    "entrypoint": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "argv"],
+          "properties": {
+            "kind": { "const": "cli" },
+            "argv": { "type": "array", "items": { "type": "string" } },
+            "stdin": { "type": ["string", "null"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "module_func", "module_kwargs"],
+          "properties": {
+            "kind": { "enum": ["unit", "module"] },
+            "module_func": { "type": "string" },
+            "module_kwargs": { "type": "object" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "module_func"],
+          "properties": {
+            "kind": { "const": "sdk" },
+            "module_func": { "type": "string" },
+            "module_kwargs": { "type": "object" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "const": "query" }
+          }
+        }
+      ]
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "fs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cwd_template": { "type": "string" },
+        "writes_allowed_under": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "mocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model"],
+      "properties": {
+        "model": { "type": "object" },
+        "mcp": { "type": "object" },
+        "network": { "type": "string", "enum": ["allow", "deny"] },
+        "subprocess": { "type": "string", "enum": ["allow", "deny"] },
+        "clock": { "type": "object" },
+        "uuid": { "type": "string" },
+        "max_turns": { "type": "integer" }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exit_code": { "type": "integer" },
+        "stdout_kind": { "type": "string", "enum": ["text", "json", "ndjson", "lines"] },
+        "events_path": { "type": "string" },
+        "stderr_substrings": { "type": "array", "items": { "type": "string" } },
+        "files_diff_path": { "type": "string" },
+        "state_snapshot": { "type": "string" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ignore_fields": { "type": "array", "items": { "type": "string" } },
+        "tolerance": { "type": "object" },
+        "blocking": { "type": "boolean" },
+        "allow_delta": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "reason", "expires_at", "kind"],
+            "properties": {
+              "path": { "type": "string" },
+              "reason": { "type": "string" },
+              "expires_at": { "type": "string" },
+              "kind": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

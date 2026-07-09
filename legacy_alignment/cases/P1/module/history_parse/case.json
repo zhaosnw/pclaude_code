@@ -1,0 +1,31 @@
+{
+  "case_id": "module.history_parse",
+  "priority": "P1",
+  "modules": [
+    "hare/hare/history.py",
+    "history.ts"
+  ],
+  "description": "Module entrypoint executes a real python function",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "history.parse_references",
+    "module_kwargs": {
+      "input_text": "[Pasted text #1]"
+    }
+  },
+  "env": {},
+  "mocks": {
+    "model": {},
+    "network": "deny",
+    "subprocess": "deny"
+  },
+  "expected": {},
+  "policy": {
+    "ignore_fields": [
+      "phase1_notes"
+    ],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": []
+  }
+}

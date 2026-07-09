@@ -5,7 +5,7 @@
     "argv": ["-p", "find needle", "--permission-mode", "bypassPermissions"],
     "ts_argv": ["-p", "find needle", "--dangerously-skip-permissions"]
   },
-  "fixture": "alignment/fixtures/grep_tool.json",
+  "fixture": "hare/alignment/fixtures/grep_tool.json",
   "fs": {"seed": ["search.txt"]},
   "expected": {"exit_code": 0, "stdout_kind": "text"},
   "policy": {"match": "exact_stdout", "golden_source": "ts-reference"}

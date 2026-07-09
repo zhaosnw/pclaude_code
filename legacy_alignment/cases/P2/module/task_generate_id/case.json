@@ -1,0 +1,71 @@
+{
+  "case_id": "module.task.generate_id",
+  "priority": "P2",
+  "modules": [
+    "Task.ts",
+    "hare/hare/task.py"
+  ],
+  "description": "generateTaskId produces correct prefix for each of the 7 task types",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "task.generate_id_all",
+    "module_kwargs": {}
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [
+      "id"
+    ],
+    "tolerance": {},
+    "blocking": false,
+    "allow_delta": [
+      {
+        "path": "events.0.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.1.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.2.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.3.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.4.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.5.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      },
+      {
+        "path": "events.6.id",
+        "reason": "Task IDs contain random bytes and differ between runs",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}

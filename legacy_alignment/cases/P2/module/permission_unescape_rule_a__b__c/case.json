@@ -1,0 +1,27 @@
+{
+  "case_id": "permission.unescape_rule.a__b__c",
+  "priority": "P2",
+  "modules": [
+    "various.ts",
+    "hare/various.py"
+  ],
+  "description": "unescapeRuleContent 'a\\\\b\\\\c'",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "permission.unescape_rule",
+    "module_kwargs": {
+      "content": "a\\\\b\\\\c"
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true
+  }
+}

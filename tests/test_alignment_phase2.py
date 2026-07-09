@@ -6,14 +6,14 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PHASE2 = PROJECT_ROOT / "hare" / "scripts" / "run_alignment_phase2.py"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PHASE2 = PROJECT_ROOT / "scripts" / "run_alignment_phase2.py"
 TS_RUNNER = (
     PROJECT_ROOT / "recovered-from-cli-js-map" / "alignment-harness" / "runner.ts"
 )
 CASE_FILE = (
     PROJECT_ROOT
-    / "alignment"
+    / "legacy_alignment"
     / "cases"
     / "P1"
     / "module"

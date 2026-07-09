@@ -1,0 +1,37 @@
+{
+  "case_id": "cost.tracker.check_2",
+  "priority": "P1",
+  "modules": [
+    "query/tokenBudget.ts",
+    "hare/hare/query/token_budget.py"
+  ],
+  "description": "cost tracker check 2",
+  "entrypoint": {
+    "kind": "module",
+    "module_func": "token_budget.check",
+    "module_kwargs": {
+      "agent_id": "agent-x",
+      "budget": 5000,
+      "tokens": 100
+    }
+  },
+  "mocks": {
+    "model": {}
+  },
+  "expected": {
+    "exit_code": 0
+  },
+  "policy": {
+    "ignore_fields": [],
+    "tolerance": {},
+    "blocking": true,
+    "allow_delta": [
+      {
+        "path": "events",
+        "reason": "Structure matches, content may differ",
+        "expires_at": "2099-01-01",
+        "kind": "text"
+      }
+    ]
+  }
+}
