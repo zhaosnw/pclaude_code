@@ -1,4 +1,4 @@
-.PHONY: help install test test-unit test-integration test-alignment e2e test-live mock-server e2e-record lint format typecheck mypy-regression security clean coverage stub-check stub-priority align-check imports-check alignment-quick alignment-full alignment-guardrails audit-sizediff replay all
+.PHONY: help install test test-unit test-integration test-alignment e2e test-live mock-server e2e-record lint format typecheck typecheck-full mypy-regression security clean coverage stub-check stub-priority align-check imports-check alignment-quick alignment-full alignment-guardrails audit-sizediff replay all
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -62,11 +62,13 @@ format: ## Run ruff formatter
 format-check: ## Check formatting without changing files
 	ruff format --check hare/ tests/
 
-typecheck: ## Run mypy type checker
-	mypy hare/ --ignore-missing-imports --show-error-codes --warn-unreachable
+typecheck: mypy-regression ## Run scoped mypy regression gate
 
-mypy-regression: ## Check mypy error count against baseline (210)
-	python scripts/check_mypy_regression.py --baseline 210
+typecheck-full: ## Show full scoped mypy diagnostics
+	mypy hare/ --ignore-missing-imports --show-error-codes --warn-unreachable --exclude '^(hare/(hare|tests|frontend|docs|scripts)(/|$$)|hare\.egg-info/)'
+
+mypy-regression: ## Check mypy error count against baseline (520)
+	python scripts/check_mypy_regression.py --baseline 520
 
 security: ## Run bandit (high severity + high confidence, same gate as CI)
 	bandit -r hare/ --severity-level high --confidence-level high

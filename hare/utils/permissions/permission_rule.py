@@ -85,7 +85,7 @@ def _find_last_unescaped_char(s: str, char: str) -> int:
 
 
 def parse_permission_rule(rule_string: str) -> PermissionRuleValue:
-    """Parse a permission rule string into tool_name and optional rule_content.
+    r"""Parse a permission rule string into tool_name and optional rule_content.
 
     TS permissionRuleValueFromString:
     - "Bash" → {toolName: "Bash"}

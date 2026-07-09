@@ -164,7 +164,7 @@ def _sanitize_project_key(raw: str) -> str:
 
 
 def _validate_memory_path(candidate: str, base_dir: str) -> str | None:
-    """Validate a user-supplied memory directory path.
+    r"""Validate a user-supplied memory directory path.
 
     TS: validateMemoryPath — rejects:
     - Relative paths (../../etc)

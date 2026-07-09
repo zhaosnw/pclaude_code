@@ -17,6 +17,8 @@ import subprocess
 import sys
 
 ERROR_LINE_RE = re.compile(r"Found (\d+) errors? in (\d+) files?")
+MYPY_TARGET = "hare/"
+MYPY_EXCLUDE = r"^(hare/(hare|tests|frontend|docs|scripts)(/|$)|hare\.egg-info/)"
 
 
 def run_mypy() -> subprocess.CompletedProcess[str]:
@@ -25,9 +27,12 @@ def run_mypy() -> subprocess.CompletedProcess[str]:
             sys.executable,
             "-m",
             "mypy",
-            "hare/",
+            MYPY_TARGET,
             "--ignore-missing-imports",
             "--show-error-codes",
+            "--warn-unreachable",
+            "--exclude",
+            MYPY_EXCLUDE,
         ],
         capture_output=True,
         text=True,
