@@ -29,6 +29,14 @@ TABLE_ROW_RE = re.compile(
     r"\|\s*`?(?P<evidence>[^|`]*)`?\s*\|\s*`?(?P<priority>[^|`]*)`?\s*\|\s*$"
 )
 
+# Only map a feature here after its core CLI behavior is exercised by a
+# TS-recorded golden. The map keeps regeneration deterministic while allowing
+# the matrix to measure verified progress instead of resetting every row.
+ALIGNED_EVIDENCE = {
+    "cli.--continue": "session.continue_basic",
+    "cli.--resume": "session.resume_basic",
+}
+
 
 def _source_text(path: Path) -> str:
     if not path.is_file():
@@ -96,10 +104,10 @@ def render_matrix() -> str:
         "| feature | status | evidence | priority |",
         "|---|---|---|---|",
     ]
-    lines.extend(
-        f"| `{feature}` | `implemented-unverified` | `-` | `{priority}` |"
-        for feature, priority in rows
-    )
+    for feature, priority in rows:
+        evidence = ALIGNED_EVIDENCE.get(feature)
+        status = "aligned" if evidence else "implemented-unverified"
+        lines.append(f"| `{feature}` | `{status}` | `{evidence or '-'}` | `{priority}` |")
     return "\n".join(lines) + "\n"
 
 
