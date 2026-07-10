@@ -1,0 +1,8 @@
+{
+  "case_id": "session.resume_bad_id",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": ""
+}

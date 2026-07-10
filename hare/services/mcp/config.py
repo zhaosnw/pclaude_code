@@ -328,6 +328,52 @@ def _parse_server_config(data: Any) -> Optional[McpServerConfig]:
     return None
 
 
+def validate_mcp_config_file(path: str) -> list[str]:
+    """Return schema errors for an explicit ``--mcp-config`` file.
+
+    Discovery intentionally skips malformed ambient configuration so a broken
+    user file does not prevent startup. An explicitly supplied CLI config is
+    different: Claude Code rejects it before running the prompt, so callers
+    need structured validation errors instead of silent omission.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as config_file:
+            data = json.load(config_file)
+    except (OSError, json.JSONDecodeError):
+        return ["Configuration file is not valid JSON"]
+
+    if not isinstance(data, dict) or not isinstance(data.get("mcpServers"), dict):
+        return ["mcpServers: Does not adhere to MCP server configuration schema"]
+
+    errors: list[str] = []
+    for name, server in data["mcpServers"].items():
+        if not isinstance(name, str) or not isinstance(server, dict):
+            errors.append(f"mcpServers.{name}: Does not adhere to MCP server configuration schema")
+            continue
+
+        transport = server.get("type", "stdio")
+        if transport == "stdio":
+            command = server.get("command")
+            args = server.get("args", [])
+            env = server.get("env", {})
+            valid = (
+                isinstance(command, str)
+                and bool(command)
+                and isinstance(args, list)
+                and all(isinstance(arg, str) for arg in args)
+                and isinstance(env, dict)
+                and all(isinstance(key, str) and isinstance(value, str) for key, value in env.items())
+            )
+        elif transport in ("sse", "http", "streamable-http", "ws"):
+            valid = isinstance(server.get("url"), str) and bool(server["url"])
+        else:
+            valid = transport in {"sse-ide", "ws-ide", "sdk", "claudeai-proxy"}
+
+        if not valid:
+            errors.append(f"mcpServers.{name}: Does not adhere to MCP server configuration schema")
+    return errors
+
+
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ import pytest
 from hare.services.mcp.config import (
     _parse_server_config,
     load_mcp_servers,
+    validate_mcp_config_file,
 )
 from hare.services.mcp.types import (
     McpHttpServerConfig,
@@ -46,6 +47,18 @@ def test_parse_stdio_config() -> None:
 
 def test_parse_stdio_missing_command_returns_none() -> None:
     assert _parse_server_config({"type": "stdio"}) is None
+
+
+def test_validate_explicit_mcp_config_rejects_non_string_stdio_command(tmp_path) -> None:
+    config_path = tmp_path / "invalid-mcp.json"
+    config_path.write_text(
+        json.dumps({"mcpServers": {"broken": {"command": 42}}}),
+        encoding="utf-8",
+    )
+
+    assert validate_mcp_config_file(str(config_path)) == [
+        "mcpServers.broken: Does not adhere to MCP server configuration schema"
+    ]
 
 
 def test_parse_sse_config() -> None:

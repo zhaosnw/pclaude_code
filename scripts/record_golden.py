@@ -62,6 +62,30 @@ def find_case(case_id: str) -> Path:
     raise SystemExit(f"case not found: {case_id}")
 
 
+def _session_id_from_config_dir(config_dir: Path) -> str | None:
+    """Return the newest session ID persisted by the recovered TS CLI.
+
+    The recovered CLI currently persists its session record under
+    ``CLAUDE_CONFIG_DIR/sessions`` but emits no JSON result for headless print
+    mode. Recording must still use the reference-generated ID for a later
+    ``--resume`` invocation.
+    """
+    candidates = sorted(
+        (config_dir / "sessions").glob("*.json"),
+        key=lambda path: path.stat().st_mtime_ns,
+        reverse=True,
+    )
+    for path in candidates:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        session_id = data.get("sessionId")
+        if isinstance(session_id, str) and session_id:
+            return session_id
+    return None
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         raise SystemExit("usage: record_golden.py <case_id>")
@@ -141,6 +165,8 @@ def main() -> None:
                 cwd=sandbox,
             )
             session_id = _session_id_from_stdout(proc.stdout, stdout_kind)
+            if session_id is None:
+                session_id = _session_id_from_config_dir(Path(cfg_dir))
             session_ids.append(session_id)
             invocation_records.append(
                 {
@@ -169,8 +195,9 @@ def main() -> None:
         "status": "ok" if all(record["status"] == "ok" for record in invocation_records) else "error",
         "state": final["state"],
         "stdout": final["stdout"],
+        "stderr": final["stderr"],
     }
-    if len(invocation_records) > 1:
+    if len(invocation_records) > 1 or case.get("policy", {}).get("match") == "session_lifecycle":
         golden["invocations"] = invocation_records
     if case.get("policy", {}).get("check_files"):
         golden["files"] = files_snapshot

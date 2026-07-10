@@ -1,0 +1,43 @@
+{
+  "case_id": "session.continue_basic",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "",
+  "invocations": [
+    {
+      "argv": [
+        "-p",
+        "remember the word pineapple",
+        "--output-format",
+        "json"
+      ],
+      "status": "ok",
+      "events": [],
+      "stdout": "",
+      "stderr": "",
+      "state": {
+        "exit_code": 0
+      },
+      "session_id": "<UUID>"
+    },
+    {
+      "argv": [
+        "-p",
+        "what word?",
+        "--continue",
+        "--output-format",
+        "json"
+      ],
+      "status": "ok",
+      "events": [],
+      "stdout": "",
+      "stderr": "",
+      "state": {
+        "exit_code": 0
+      },
+      "session_id": "<UUID>"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -130,46 +131,17 @@ def test_get_connection_none_by_default() -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_connect_and_call_echo_server(tmp_path) -> None:
-    """Integration test: connect to a simple echo MCP server and call a tool.
-
-    Writes the echo server to a temp file to avoid inline-script quoting issues.
-    """
+async def test_connect_and_call_echo_server() -> None:
+    """Integration test: connect to the alignment echo MCP server and call it."""
     pool = get_mcp_client_pool()
-
-    echo_script = tmp_path / "echo_server.py"
-    echo_script.write_text("""\
-import sys, json
-
-def respond(rid, result):
-    line = json.dumps({"jsonrpc":"2.0","id":rid,"result":result})
-    sys.stdout.write(line + "\\n")
-    sys.stdout.flush()
-
-for line in sys.stdin:
-    line = line.strip()
-    if not line:
-        continue
-    msg = json.loads(line)
-    method = msg.get("method","")
-    rid = msg.get("id")
-    if method == "initialize":
-        respond(rid, {"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"serverInfo":{"name":"echo","version":"1.0"}})
-    elif method == "tools/list":
-        respond(rid, {"tools":[{"name":"echo","description":"Echoes input","inputSchema":{"type":"object","properties":{"text":{"type":"string"}}}}]})
-    elif method == "tools/call":
-        args = msg.get("params",{}).get("arguments",{})
-        respond(rid, {"content":[{"type":"text","text":json.dumps(args)}]})
-    elif method == "resources/list":
-        respond(rid, {"resources":[]})
-    else:
-        respond(rid, {})
-""")
 
     import sys
 
     proc = subprocess.Popen(
-        [sys.executable, str(echo_script)],
+        [
+            sys.executable,
+            str(Path(__file__).resolve().parents[1] / "hare" / "alignment" / "seeds" / "mcp_echo_server.py"),
+        ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

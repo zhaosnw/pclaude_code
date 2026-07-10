@@ -1,0 +1,24 @@
+{
+  "case_id": "mcp.config_parse_error",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "hello",
+      "--mcp-config",
+      "mcp_invalid_config.json",
+      "--output-format",
+      "json"
+    ]
+  },
+  "fixture": "hare/alignment/fixtures/single_turn_hello.json",
+  "fs": {
+    "seed": ["mcp_invalid_config.json"]
+  },
+  "expected": {
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "golden_source": "ts-reference"
+  }
+}

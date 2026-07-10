@@ -59,6 +59,16 @@ def _resolve_hare_fixture_path(fixture: str) -> Path:
 def _parse_stdout(stdout: str, stdout_kind: str) -> list[Any]:
     if stdout_kind not in {"json", "ndjson"}:
         return []
+    # Hare emits pretty-printed JSON for --output-format json, while
+    # stream-json is line-delimited. Prefer the complete document so a normal
+    # JSON result does not get misclassified as a sequence of raw lines.
+    if stdout_kind == "json":
+        try:
+            parsed = json.loads(stdout)
+        except json.JSONDecodeError:
+            pass
+        else:
+            return parsed if isinstance(parsed, list) else [parsed]
     events: list[Any] = []
     for line in stdout.splitlines():
         line = line.strip()

@@ -1,0 +1,22 @@
+{
+  "case_id": "session.resume_bad_id",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "what word?",
+      "--resume",
+      "00000000-0000-4000-8000-000000000000",
+      "--output-format",
+      "json"
+    ]
+  },
+  "fixture": "hare/alignment/fixtures/single_turn_hello.json",
+  "expected": {
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "golden_source": "ts-reference"
+  },
+  "known_divergence": "The recovered TS print-mode entrypoint silently succeeds for an unknown --resume ID. Hare intentionally preserves a user-visible 'No session found to resume.' error until this behavior is verified against a non-recovered Claude Code reference."
+}

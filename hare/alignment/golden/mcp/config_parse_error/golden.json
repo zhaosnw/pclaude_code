@@ -1,0 +1,9 @@
+{
+  "case_id": "mcp.config_parse_error",
+  "status": "error",
+  "state": {
+    "exit_code": 1
+  },
+  "stdout": "",
+  "stderr": "Error: Invalid MCP configuration:\nmcpServers.broken: Does not adhere to MCP server configuration schema\n"
+}

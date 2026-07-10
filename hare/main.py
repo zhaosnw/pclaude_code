@@ -199,6 +199,17 @@ async def cli_main(args: list[str] | None = None) -> None:
 
     parsed = parser.parse_args(args)
 
+    if parsed.mcp_config:
+        from hare.services.mcp.config import validate_mcp_config_file
+
+        for config_path in parsed.mcp_config:
+            errors = validate_mcp_config_file(config_path)
+            if errors:
+                print("Error: Invalid MCP configuration:", file=sys.stderr)
+                for error in errors:
+                    print(error, file=sys.stderr)
+                sys.exit(1)
+
     # Set working directory
     cwd = parsed.cwd or os.getcwd()
     set_cwd(cwd)

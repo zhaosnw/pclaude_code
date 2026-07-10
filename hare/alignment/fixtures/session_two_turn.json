@@ -1,0 +1,15 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "I will remember pineapple."}],
+      "usage": {"input_tokens": 5, "output_tokens": 6}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "pineapple"}],
+      "usage": {"input_tokens": 8, "output_tokens": 2}
+    }
+  ]
+}

@@ -121,6 +121,25 @@ def test_case_matches_golden(case_path: Path):
             pytest.xfail(f"known hare divergence (files): {case['known_divergence']}\n{files_diff}")
         assert files_diff is None, f"file-effect mismatch:\n{files_diff}"
 
+    if case.get("policy", {}).get("match") == "session_lifecycle":
+        def lifecycle(records):
+            return [
+                {
+                    "argv": record["argv"],
+                    "status": record["status"],
+                    "state": record["state"],
+                    "session_id": record["session_id"],
+                }
+                for record in records
+            ]
+
+        assert lifecycle(actual.get("invocations", [])) == lifecycle(expected.get("invocations", [])), (
+            "session lifecycle mismatch:\n"
+            f"--- expected (reference) ---\n{lifecycle(expected.get('invocations', []))}\n"
+            f"--- actual (hare) ---\n{lifecycle(actual.get('invocations', []))}"
+        )
+        return
+
     if "invocations" in expected:
         assert actual.get("invocations") == expected["invocations"], (
             "invocation sequence mismatch:\n"
@@ -168,6 +187,19 @@ def test_case_matches_golden(case_path: Path):
         assert not mismatch, (
             f"\n--- expected (reference) ---\n{expected['stdout']!r}\n"
             f"--- actual (hare) ---\n{actual['stdout']!r}"
+        )
+
+    if "stderr" in expected:
+        mismatch = actual["stderr"] != expected["stderr"]
+        if mismatch and case.get("known_divergence"):
+            pytest.xfail(
+                f"known hare divergence: {case['known_divergence']}\n"
+                f"  reference stderr: {expected['stderr']!r}\n"
+                f"  hare stderr:      {actual['stderr']!r}"
+            )
+        assert not mismatch, (
+            f"\n--- expected stderr ---\n{expected['stderr']!r}\n"
+            f"--- actual stderr ---\n{actual['stderr']!r}"
         )
 
     # substring assertions (lighter-weight contract checks)

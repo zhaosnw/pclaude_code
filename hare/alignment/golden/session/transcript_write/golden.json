@@ -1,0 +1,26 @@
+{
+  "case_id": "session.transcript_write",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "",
+  "invocations": [
+    {
+      "argv": [
+        "-p",
+        "remember the word pineapple",
+        "--output-format",
+        "json"
+      ],
+      "status": "ok",
+      "events": [],
+      "stdout": "",
+      "stderr": "",
+      "state": {
+        "exit_code": 0
+      },
+      "session_id": "<UUID>"
+    }
+  ]
+}

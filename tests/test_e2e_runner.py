@@ -93,3 +93,11 @@ def test_run_case_reuses_previous_json_session_id_for_later_invocation(monkeypat
     assert calls[1][-6:] == ["--resume", "first-session", "-p", "what word?", "--output-format", "json"]
     assert result["state"]["exit_code"] == 0
     assert result["invocations"][0]["session_id"] == "first-session"
+
+
+def test_parse_stdout_accepts_pretty_printed_json_result():
+    parsed = e2e_runner._parse_stdout(
+        '{\n  "type": "result",\n  "session_id": "session-1"\n}\n', "json"
+    )
+
+    assert parsed == [{"type": "result", "session_id": "session-1"}]
