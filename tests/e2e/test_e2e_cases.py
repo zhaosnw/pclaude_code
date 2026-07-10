@@ -121,6 +121,13 @@ def test_case_matches_golden(case_path: Path):
             pytest.xfail(f"known hare divergence (files): {case['known_divergence']}\n{files_diff}")
         assert files_diff is None, f"file-effect mismatch:\n{files_diff}"
 
+    if "invocations" in expected:
+        assert actual.get("invocations") == expected["invocations"], (
+            "invocation sequence mismatch:\n"
+            f"--- expected (reference) ---\n{expected['invocations']}\n"
+            f"--- actual (hare) ---\n{actual.get('invocations')}"
+        )
+
     # Structural JSON comparison: compare the result object's stable fields,
     # ignoring volatile/env-specific ones. Used for --output-format json/stream-json.
     if case.get("policy", {}).get("match") == "json_structural":

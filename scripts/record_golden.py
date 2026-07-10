@@ -23,6 +23,7 @@ import sys
 import tempfile
 import threading
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HARE_ROOT = REPO_ROOT / "hare"
@@ -31,6 +32,12 @@ sys.path.insert(0, str(HARE_ROOT / "alignment"))
 
 from mock_anthropic_server import make_server  # noqa: E402
 from golden_normalize import normalize_result, snapshot_files  # noqa: E402
+from e2e_runner import (  # noqa: E402
+    _invocations,
+    _parse_stdout,
+    _session_id_from_stdout,
+    _substitute_session_ids,
+)
 
 CASES_DIR = HARE_ROOT / "alignment" / "cases"
 GOLDEN_DIR = HARE_ROOT / "alignment" / "golden"
@@ -106,21 +113,46 @@ def main() -> None:
         if src.exists():
             shutil.copy2(src, dst)
 
-    # Cases may declare a reference-specific argv when CLI flags differ between
-    # hare and the TS reference (e.g. hare's --permission-mode bypassPermissions
-    # vs claude's --dangerously-skip-permissions).
-    argv = case["entrypoint"].get("ts_argv", case["entrypoint"]["argv"])
     files_snapshot: list = []
+    invocation_records: list[dict[str, Any]] = []
+    session_ids: list[str | None] = []
     try:
-        proc = subprocess.run(
-            ts_cli.split() + argv,
-            input=case["entrypoint"].get("stdin"),
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env=env,
-            cwd=sandbox,
-        )
+        for invocation in _invocations(case):
+            # Cases may declare a reference-specific argv when CLI flags differ
+            # between hare and the TS reference (e.g. hare's
+            # --permission-mode bypassPermissions vs Claude's
+            # --dangerously-skip-permissions).
+            argv = invocation.get("ts_argv", invocation.get("argv"))
+            if not isinstance(argv, list) or not all(isinstance(arg, str) for arg in argv):
+                raise ValueError("every invocation argv must be an array of strings")
+            rendered_argv = [_substitute_session_ids(arg, session_ids) for arg in argv]
+            stdin_text = invocation.get("stdin")
+            if isinstance(stdin_text, str):
+                stdin_text = _substitute_session_ids(stdin_text, session_ids)
+            invocation_expected = {**case.get("expected", {}), **invocation.get("expected", {})}
+            stdout_kind = invocation_expected.get("stdout_kind", "text")
+            proc = subprocess.run(
+                ts_cli.split() + rendered_argv,
+                input=stdin_text,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=env,
+                cwd=sandbox,
+            )
+            session_id = _session_id_from_stdout(proc.stdout, stdout_kind)
+            session_ids.append(session_id)
+            invocation_records.append(
+                {
+                    "argv": rendered_argv,
+                    "status": "ok" if proc.returncode == invocation_expected.get("exit_code", 0) else "error",
+                    "events": _parse_stdout(proc.stdout, stdout_kind),
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                    "state": {"exit_code": proc.returncode},
+                    "session_id": session_id,
+                }
+            )
         # Capture the reference's post-run filesystem before the sandbox is
         # torn down, so file-mutating tools (Write/Edit/...) can be diffed.
         if case.get("policy", {}).get("check_files"):
@@ -131,12 +163,15 @@ def main() -> None:
         shutil.rmtree(sandbox, ignore_errors=True)
 
     expected_code = case.get("expected", {}).get("exit_code", 0)
+    final = invocation_records[-1]
     golden = {
         "case_id": case["case_id"],
-        "status": "ok" if proc.returncode == expected_code else "error",
-        "state": {"exit_code": proc.returncode},
-        "stdout": proc.stdout,
+        "status": "ok" if all(record["status"] == "ok" for record in invocation_records) else "error",
+        "state": final["state"],
+        "stdout": final["stdout"],
     }
+    if len(invocation_records) > 1:
+        golden["invocations"] = invocation_records
     if case.get("policy", {}).get("check_files"):
         golden["files"] = files_snapshot
     golden = normalize_result(golden)
@@ -148,8 +183,8 @@ def main() -> None:
     print(f"wrote {out}")
     if golden["status"] != "ok":
         print(
-            f"WARNING: TS exit {proc.returncode} (expected {expected_code}); "
-            f"stderr:\n{proc.stderr}",
+            f"WARNING: TS exit {final['state']['exit_code']} (expected {expected_code}); "
+            f"stderr:\n{final['stderr']}",
             file=sys.stderr,
         )
 

@@ -11,6 +11,9 @@ A case dict:
     {
       "case_id": str,
       "entrypoint": {"argv": [...], "stdin": str|None},
+      # or, for session scenarios, a sequential list of entrypoints. Later
+      # invocations may reference ${session_id[N]} from an earlier JSON result.
+      "invocations": [{"argv": [...], "stdin": str|None}, ...],
       "fixture": "hare/alignment/fixtures/<name>.json"  # optional canonical form
       "fs": {"seed": ["README.md", ...]},           # optional; copied from hare/alignment/seeds/
       "env": {...},                                  # optional extra env
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -34,6 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 HARE_ROOT = REPO_ROOT / "hare"
 FIXTURES_ROOT = HARE_ROOT / "alignment" / "fixtures"
 SEEDS_ROOT = HARE_ROOT / "alignment" / "seeds"
+SESSION_ID_REFERENCE_RE = re.compile(r"\$\{session_id\[(\d+)\]\}")
 
 sys.path.insert(0, str(HARE_ROOT / "alignment"))
 from golden_normalize import snapshot_files  # noqa: E402
@@ -115,32 +120,96 @@ def _snapshot(root: Path) -> list[dict[str, Any]]:
     return snapshot_files(root)
 
 
+def _invocations(case: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize legacy single-entrypoint and multi-invocation case schemas."""
+    has_entrypoint = "entrypoint" in case
+    has_invocations = "invocations" in case
+    if has_entrypoint == has_invocations:
+        raise ValueError("case must define exactly one of 'entrypoint' or 'invocations'")
+    if has_entrypoint:
+        entrypoint = case["entrypoint"]
+        if not isinstance(entrypoint, dict):
+            raise ValueError("case.entrypoint must be an object")
+        return [entrypoint]
+
+    invocations = case["invocations"]
+    if not isinstance(invocations, list) or not invocations:
+        raise ValueError("case.invocations must be a non-empty array")
+    if not all(isinstance(invocation, dict) for invocation in invocations):
+        raise ValueError("every case invocation must be an object")
+    return invocations
+
+
+def _substitute_session_ids(value: str, session_ids: list[str | None]) -> str:
+    def replace(match: re.Match[str]) -> str:
+        index = int(match.group(1))
+        if index >= len(session_ids) or not session_ids[index]:
+            raise ValueError(f"session_id[{index}] is unavailable for this invocation")
+        return session_ids[index] or ""
+
+    return SESSION_ID_REFERENCE_RE.sub(replace, value)
+
+
+def _session_id_from_stdout(stdout: str, stdout_kind: str) -> str | None:
+    for event in _parse_stdout(stdout, stdout_kind):
+        if isinstance(event, dict) and isinstance(event.get("session_id"), str):
+            return event["session_id"]
+    return None
+
+
 def run_case(case: dict[str, Any], *, base_url: str | None = None) -> dict[str, Any]:
     """Run one CLI E2E case. If base_url is set, drives the real HTTP path
     (Layer B) instead of the in-process fixture (Layer A)."""
-    entrypoint = case["entrypoint"]
     expected = case.get("expected", {})
     sandbox = _make_sandbox(case)
     env = _prepare_env(case, base_url=base_url, sandbox_root=sandbox)
-    stdin_text = entrypoint.get("stdin")
+    invocation_results: list[dict[str, Any]] = []
+    session_ids: list[str | None] = []
 
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "hare", *entrypoint["argv"]],
-            input=stdin_text,
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env=env,
-            cwd=str(sandbox),
+    for invocation in _invocations(case):
+        argv = invocation.get("argv")
+        if not isinstance(argv, list) or not all(isinstance(arg, str) for arg in argv):
+            raise ValueError("every invocation argv must be an array of strings")
+        invocation_expected = {**expected, **invocation.get("expected", {})}
+        stdout_kind = invocation_expected.get("stdout_kind", "text")
+        rendered_argv = [_substitute_session_ids(arg, session_ids) for arg in argv]
+        stdin_text = invocation.get("stdin")
+        if isinstance(stdin_text, str):
+            stdin_text = _substitute_session_ids(stdin_text, session_ids)
+
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "hare", *rendered_argv],
+                input=stdin_text,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=env,
+                cwd=str(sandbox),
+            )
+            exit_code, stdout, stderr = proc.returncode, proc.stdout, proc.stderr
+            status = "ok" if exit_code == invocation_expected.get("exit_code", 0) else "error"
+        except subprocess.TimeoutExpired:
+            exit_code, stdout, stderr, status = -1, "", "Timeout", "timeout"
+        except Exception as exc:  # pragma: no cover - defensive
+            exit_code, stdout, stderr, status = -1, "", str(exc), "error"
+
+        session_id = _session_id_from_stdout(stdout, stdout_kind)
+        session_ids.append(session_id)
+        invocation_results.append(
+            {
+                "argv": rendered_argv,
+                "status": status,
+                "events": _parse_stdout(stdout, stdout_kind),
+                "stdout": stdout,
+                "stderr": stderr,
+                "state": {"exit_code": exit_code},
+                "session_id": session_id,
+            }
         )
-        exit_code = proc.returncode
-        stdout, stderr = proc.stdout, proc.stderr
-        status = "ok" if exit_code == expected.get("exit_code", 0) else "error"
-    except subprocess.TimeoutExpired:
-        exit_code, stdout, stderr, status = -1, "", "Timeout", "timeout"
-    except Exception as exc:  # pragma: no cover - defensive
-        exit_code, stdout, stderr, status = -1, "", str(exc), "error"
+
+    final = invocation_results[-1]
+    status = "ok" if all(result["status"] == "ok" for result in invocation_results) else "error"
 
     files_snapshot = _snapshot(sandbox)
     sandbox_root = str(sandbox)
@@ -151,11 +220,12 @@ def run_case(case: dict[str, Any], *, base_url: str | None = None) -> dict[str, 
         "case_id": case["case_id"],
         "priority": case.get("priority", "P2"),
         "status": status,
-        "events": _parse_stdout(stdout, stdout_kind),
-        "stdout": stdout,
-        "stderr": stderr,
+        "events": final["events"],
+        "stdout": final["stdout"],
+        "stderr": final["stderr"],
         "files": files_snapshot,
-        "state": {"exit_code": exit_code},
+        "state": final["state"],
+        "invocations": invocation_results,
         "sandbox_root": sandbox_root,
     }
 

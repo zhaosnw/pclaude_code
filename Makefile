@@ -108,6 +108,7 @@ alignment-full: ## Run P0+P1 alignment (Python only)
 	python scripts/compare_alignment.py --ts /dev/null --py /tmp/py-alignment.jsonl --priority P0,P1 --py-only --weighted-min 1.00
 
 alignment-guardrails: ## Run the de-mirroring / fixture-canonicalization guardrail suite
+	python scripts/gen_parity_matrix.py --check
 	python -m pytest \
 		tests/test_hare_tree_cleanup_guard.py \
 		tests/test_record_golden_paths.py \
