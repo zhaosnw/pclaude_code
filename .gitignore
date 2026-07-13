@@ -15,3 +15,5 @@ htmlcov/
 
 recovered-from-cli-js-map/
 claude-code-recover-and-python-reset/
+.oracle/
+*.egg-info/
