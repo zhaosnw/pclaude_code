@@ -65,6 +65,11 @@ def _stable_result(obj: dict) -> dict:
         "stop_reason": obj.get("stop_reason"),
         "usage_input_tokens": usage.get("input_tokens"),
         "usage_output_tokens": usage.get("output_tokens"),
+        # Deterministic permission outcome: with scripted fixtures the usage
+        # and result text are identical whether a tool call was allowed or
+        # denied, so the denial list is the only structural signal the
+        # permission axis has.
+        "permission_denials": obj.get("permission_denials"),
     }
 
 CASE_PATHS = sorted(CASES_DIR.glob("**/case.json"))

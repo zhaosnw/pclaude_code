@@ -311,6 +311,7 @@ class QueryEngine:
                         "session_id": get_session_id(),
                         "total_cost_usd": get_total_cost(),
                         "usage": self._total_usage,
+                        "permission_denials": self._permission_denials,
                         "uuid": str(uuid4()),
                     }
                     return
@@ -338,6 +339,7 @@ class QueryEngine:
                     "session_id": get_session_id(),
                     "total_cost_usd": get_total_cost(),
                     "usage": self._total_usage,
+                    "permission_denials": self._permission_denials,
                     "uuid": str(uuid4()),
                 }
                 return
