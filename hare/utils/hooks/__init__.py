@@ -61,6 +61,30 @@ async def _run_single_hook(
 
     timeout_sec = timeout_ms / 1000.0
 
+    # AsyncHookRegistry handlers are Python callbacks, not shell commands.
+    # Keep the callback path in the same protocol as command hooks so tests and
+    # embedded callers can register deterministic lifecycle hooks.
+    registered_handler = getattr(handler, "handler", None)
+    if callable(registered_handler):
+        try:
+            callback_result = registered_handler(context)
+            if asyncio.iscoroutine(callback_result):
+                callback_result = await callback_result
+            if not isinstance(callback_result, dict):
+                return {}
+            if "hookSpecificOutput" in callback_result or "decision" in callback_result:
+                callback_result = resolve_hook_decision(callback_result)
+            if "permissionDecision" in callback_result and "permissionBehavior" not in callback_result:
+                callback_result["permissionBehavior"] = callback_result["permissionDecision"]
+            return callback_result
+        except Exception as e:
+            return {
+                "blockingError": HookBlockingError(
+                    blocking_error=f"Hook '{command}' failed: {e}",
+                    command=command,
+                ),
+            }
+
     # Dispatch by hook type (TS: supports command/prompt/agent/http)
     try:
         if hook_type == "prompt":
@@ -124,6 +148,8 @@ async def _run_single_hook(
     # Resolve hook decision from parsed JSON (TS hook response protocol)
     resolved = resolve_hook_decision(parsed)
     response.update(resolved)
+    if "permissionDecision" in response and "permissionBehavior" not in response:
+        response["permissionBehavior"] = response["permissionDecision"]
 
     return response
 
