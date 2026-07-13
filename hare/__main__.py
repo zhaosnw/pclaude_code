@@ -1,19 +1,11 @@
-"""Allow running hare as a module: python -m hare"""
+"""Allow running Hare through the same entrypoint as the ``hare`` command."""
 
 from __future__ import annotations
 
-import asyncio
-import sys
-
-
 def main() -> None:
-    from hare.main import cli_main
+    from hare.entrypoints.cli import main as cli_entrypoint_main
 
-    try:
-        asyncio.run(cli_main())
-    except KeyboardInterrupt:
-        print("\nGoodbye!")
-        sys.exit(0)
+    cli_entrypoint_main()
 
 
 if __name__ == "__main__":

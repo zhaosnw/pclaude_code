@@ -13,6 +13,7 @@ from ..commands import get_commands
 from ..query_engine import QueryEngine, QueryEngineConfig
 from ..tool import get_empty_tool_permission_context
 from ..tools import get_tools
+from ..tools import assemble_tool_pool
 from ..utils.cwd import get_cwd
 from ..app_types.permissions import PermissionAllowDecision
 
@@ -36,6 +37,8 @@ class HareClientOptions:
     verbose: bool = False
     system_prompt: Optional[str] = None
     append_system_prompt: Optional[str] = None
+    mcp_tools: list[Any] | None = None
+    mcp_clients: list[Any] | None = None
 
 
 class HareClient:
@@ -49,7 +52,7 @@ class HareClient:
         opts = options or HareClientOptions()
         cwd = opts.cwd or get_cwd()
         permission_context = get_empty_tool_permission_context()
-        tools = get_tools(permission_context)
+        tools = assemble_tool_pool(permission_context, opts.mcp_tools)
         commands = await get_commands(cwd)
         engine = QueryEngine(
             QueryEngineConfig(
@@ -64,6 +67,7 @@ class HareClient:
                 verbose=opts.verbose,
                 custom_system_prompt=opts.system_prompt,
                 append_system_prompt=opts.append_system_prompt,
+                mcp_clients=opts.mcp_clients or [],
             )
         )
         return cls(engine)
@@ -97,6 +101,12 @@ class HareClient:
 
     def interrupt(self) -> None:
         self._engine.interrupt()
+
+    async def close(self) -> None:
+        for client in self._engine._config.mcp_clients:
+            disconnect_all = getattr(client, "disconnect_all", None)
+            if disconnect_all:
+                await disconnect_all()
 
     def resume(self) -> QueryEngine:
         """Expose the underlying engine for advanced callers resuming stateful sessions."""

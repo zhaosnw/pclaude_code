@@ -314,6 +314,7 @@ async def cli_main(args: list[str] | None = None) -> None:
             system_prompt=parsed.system_prompt,
             append_system_prompt=parsed.append_system_prompt,
             output_format=output_format,
+            mcp_config=parsed.mcp_config or [],
         )
     else:
         # Interactive REPL mode — aligns with React/Ink REPL in src/main.tsx
@@ -605,10 +606,18 @@ async def _run_print_mode(
     system_prompt: Optional[str] = None,
     append_system_prompt: Optional[str] = None,
     output_format: str = "text",
+    mcp_config: list[str] | None = None,
 ) -> None:
     """Run in non-interactive (print) mode. Mirrors the print path in main.tsx."""
     from hare.sdk import HareClient, HareClientOptions
 
+    mcp_tools: list[Any] = []
+    mcp_clients: list[Any] = []
+    if mcp_config:
+        from hare.services.mcp.runtime import connect_explicit_mcp_tools
+
+        mcp_tools, pool = await connect_explicit_mcp_tools(mcp_config)
+        mcp_clients = [pool]
     client = await HareClient.create(
         HareClientOptions(
             cwd=get_cwd(),
@@ -617,10 +626,14 @@ async def _run_print_mode(
             verbose=verbose,
             system_prompt=system_prompt,
             append_system_prompt=append_system_prompt,
+            mcp_tools=mcp_tools,
+            mcp_clients=mcp_clients,
         )
     )
-
-    exit_code = await _emit_print_stream(client.stream(prompt), output_format)
+    try:
+        exit_code = await _emit_print_stream(client.stream(prompt), output_format)
+    finally:
+        await client.close()
     if exit_code:
         sys.exit(exit_code)
 

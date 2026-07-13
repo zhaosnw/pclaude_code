@@ -29,6 +29,7 @@ hare = "hare.entrypoints.cli:main"
 # Canonical importable source lives in the top-level ``hare/`` package.
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["hare*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]

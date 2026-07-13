@@ -31,18 +31,66 @@ For the latest verified repo status, start with:
 - Optional: Node.js if you want to inspect or work on the frontend sources
 - Optional: Anthropic credentials for live smoke tests
 
-## Install
+## 安装与启动 Hare Coding Agent
 
-Install the Python package with the same extras used by CI:
+在仓库根目录执行以下命令安装运行所需依赖。这里的可编辑安装会注册 `hare` 命令；不要进入 `hare/` 子目录启动。
+
+```bash
+python -m pip install -e ".[anthropic]"
+```
+
+如需运行本仓库的测试、lint 等开发工具，再安装开发额外依赖：
 
 ```bash
 python -m pip install -e ".[dev,anthropic]"
 ```
 
-The CLI entrypoint is:
+安装后，先确认命令可用：
+
+```bash
+python -m hare --version
+```
+
+启动交互式 Coding Agent（在你希望它操作的项目目录执行）：
 
 ```bash
 hare
+```
+
+首次发起模型请求前，需要配置可用的 Anthropic 兼容凭证。例如使用环境变量：
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key"
+hare
+```
+
+也可以将凭证放在用户级 `~/.hare/settings.json`（不要提交）中：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "your-api-key"
+  }
+}
+```
+
+Hare 同时读取项目级 `.hare/settings.json`；项目配置只应包含可安全共享的非密钥设置。
+
+非交互模式适合脚本或一次性任务：
+
+```bash
+hare -p "分析当前项目，并给出下一步建议"
+```
+
+常用启动选项：
+
+```bash
+hare --cwd /path/to/project              # 指定工作目录
+hare --model <model>                     # 指定模型
+hare --permission-mode plan              # 仅规划，不执行修改
+hare -c                                  # 继续最近一次会话
+hare --resume <session-id>               # 恢复指定会话
+hare --help                              # 查看完整参数说明
 ```
 
 ## Common Commands

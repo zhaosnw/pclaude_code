@@ -1020,38 +1020,30 @@ class McpClientPool:
     async def _read_loop(self, session: StdioSession) -> None:
         """Read JSON-RPC messages from the subprocess stdout."""
         loop = asyncio.get_running_loop()
-        buffer = b""
 
         try:
             while not session._closed:
                 try:
-                    chunk = await asyncio.wait_for(
+                    line = await asyncio.wait_for(
                         loop.run_in_executor(
                             None,
-                            session.process.stdout.read,  # type: ignore[union-attr]
-                            4096,
+                            session.process.stdout.readline,  # type: ignore[union-attr]
                         ),
                         timeout=0.5,
                     )
                 except asyncio.TimeoutError:
                     continue
 
-                if not chunk:
+                if not line:
                     break  # EOF — process exited
-
-                buffer += chunk
-
-                # Process complete lines
-                while b"\n" in buffer:
-                    line, buffer = buffer.split(b"\n", 1)
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        msg = json.loads(line.decode("utf-8"))
-                    except json.JSONDecodeError:
-                        continue
-                    self._handle_message(session, msg)
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    msg = json.loads(line.decode("utf-8"))
+                except json.JSONDecodeError:
+                    continue
+                self._handle_message(session, msg)
         except Exception:
             pass
 

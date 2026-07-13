@@ -105,6 +105,17 @@ def load_mcp_servers(
     ]
 
 
+def load_explicit_mcp_config_files(paths: list[str]) -> list[MCPServerConnection]:
+    """Load CLI ``--mcp-config`` files as project-scoped server definitions."""
+    scoped: dict[str, ScopedMcpServerConfig] = {}
+    for path in paths:
+        _load_from_mcp_json(path, scoped)
+    return [
+        MCPServerConnection(name=name, config=item.config, scope=item.scope, enabled=item.enabled)
+        for name, item in scoped.items()
+    ]
+
+
 load_mcp_servers_from_settings = load_mcp_servers
 
 

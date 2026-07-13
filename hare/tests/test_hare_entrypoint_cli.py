@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def test_project_root_is_repository_root() -> None:
+    from hare.entrypoints import cli as entry_cli
+
+    assert entry_cli._project_root() == Path(entry_cli.__file__).resolve().parents[2]
+
+
 def test_run_ts_frontend_uses_callers_cwd(monkeypatch) -> None:
     from hare.entrypoints import cli as entry_cli
 

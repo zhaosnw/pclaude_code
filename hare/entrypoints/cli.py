@@ -19,7 +19,8 @@ BUILD_TIME = "recovered-from-sourcemap"
 
 
 def _project_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    # ``cli.py`` lives at ``<repo>/hare/entrypoints/cli.py``.
+    return Path(__file__).resolve().parents[2]
 
 
 def _frontend_root() -> Path:
@@ -103,7 +104,7 @@ def main() -> None:
 
     # Fast-path for --version/-v: zero module loading needed
     if len(args) == 1 and args[0] in ("--version", "-v", "-V"):
-        print(f"{VERSION} (Claude Code)")
+        print(f"{VERSION} (Hare)")
         return
 
     # Set COREPACK_ENABLE_AUTO_PIN=0 (bugfix for corepack auto-pinning)
