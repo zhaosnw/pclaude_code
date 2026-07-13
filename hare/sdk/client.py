@@ -15,7 +15,7 @@ from ..tool import get_empty_tool_permission_context
 from ..tools import get_tools
 from ..tools import assemble_tool_pool
 from ..utils.cwd import get_cwd
-from ..app_types.permissions import PermissionAllowDecision
+from ..app_types.permissions import PermissionAllowDecision, ToolPermissionContext
 
 
 async def _sdk_default_can_use_tool(
@@ -29,6 +29,21 @@ async def _sdk_default_can_use_tool(
     return PermissionAllowDecision(behavior="allow", updated_input=input)
 
 
+async def _sdk_permission_can_use_tool(
+    tool: Any,
+    input: Any,
+    context: Any,
+    assistant_msg: Any,
+    tool_use_id: str,
+    force: Any,
+) -> Any:
+    from ..utils.permissions.permissions import has_permissions_to_use_tool
+
+    return await has_permissions_to_use_tool(
+        tool, input, context, assistant_msg, tool_use_id, force
+    )
+
+
 @dataclass
 class HareClientOptions:
     cwd: Optional[str] = None
@@ -39,6 +54,7 @@ class HareClientOptions:
     append_system_prompt: Optional[str] = None
     mcp_tools: list[Any] | None = None
     mcp_clients: list[Any] | None = None
+    permission_context: ToolPermissionContext | None = None
 
 
 class HareClient:
@@ -51,7 +67,7 @@ class HareClient:
     async def create(cls, options: HareClientOptions | None = None) -> "HareClient":
         opts = options or HareClientOptions()
         cwd = opts.cwd or get_cwd()
-        permission_context = get_empty_tool_permission_context()
+        permission_context = opts.permission_context or get_empty_tool_permission_context()
         tools = assemble_tool_pool(permission_context, opts.mcp_tools)
         commands = await get_commands(cwd)
         engine = QueryEngine(
@@ -59,7 +75,11 @@ class HareClient:
                 cwd=cwd,
                 tools=tools,
                 commands=commands,
-                can_use_tool=_sdk_default_can_use_tool,
+                can_use_tool=(
+                    _sdk_permission_can_use_tool
+                    if opts.permission_context is not None
+                    else _sdk_default_can_use_tool
+                ),
                 get_app_state=lambda: {},
                 set_app_state=lambda _f: None,
                 user_specified_model=opts.model,
@@ -68,6 +88,7 @@ class HareClient:
                 custom_system_prompt=opts.system_prompt,
                 append_system_prompt=opts.append_system_prompt,
                 mcp_clients=opts.mcp_clients or [],
+                permission_context=opts.permission_context,
             )
         )
         return cls(engine)

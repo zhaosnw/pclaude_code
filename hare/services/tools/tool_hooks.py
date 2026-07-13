@@ -1440,6 +1440,9 @@ def _extract_permission_context(tool_use_context: Any) -> Any:
     # Fallback: check options
     options = getattr(tool_use_context, "options", None)
     if options is not None:
+        perm_ctx = getattr(options, "permission_context", None)
+        if perm_ctx is not None:
+            return perm_ctx
         commands = getattr(options, "commands", []) or []
         if commands:
             perm_ctx = getattr(commands[0], "permission_context", None)

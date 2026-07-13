@@ -109,6 +109,10 @@ class ToolUseContextOptions:
     refresh_tools: Optional[Callable[[], list["Tool"]]] = None
     theme: str = "default"
     ide_installation_status: Optional[str] = None
+    # Runtime permission state for headless and SDK callers. Keeping this on
+    # options mirrors the app-state lookup while making the context explicit
+    # and testable outside the interactive UI.
+    permission_context: Optional[ToolPermissionContext] = None
 
 
 @dataclass

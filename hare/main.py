@@ -242,6 +242,15 @@ async def cli_main(args: list[str] | None = None) -> None:
         permission_mode=parsed.permission_mode,
     )
 
+    from hare.utils.permissions.permissions_loader import load_permission_context
+
+    permission_context = load_permission_context(
+        cwd,
+        mode=parsed.permission_mode,
+        allowed_tools=_split_cli_rules(parsed.allowed_tools),
+        disallowed_tools=_split_cli_rules(parsed.disallowed_tools),
+    )
+
     # Resolve the prompt and mode. Sources, in order: -p/--print value, a
     # positional prompt, or — when stdin is piped (not a TTY) — stdin itself
     # (Claude Code reads stdin as the prompt for `echo "..." | claude`). An
@@ -298,6 +307,7 @@ async def cli_main(args: list[str] | None = None) -> None:
             non_interactive=non_interactive,
             print_prompt=resume_prompt,
             output_format=output_format,
+            permission_context=permission_context,
         )
         return
 
@@ -315,6 +325,7 @@ async def cli_main(args: list[str] | None = None) -> None:
             append_system_prompt=parsed.append_system_prompt,
             output_format=output_format,
             mcp_config=parsed.mcp_config or [],
+            permission_context=permission_context,
         )
     else:
         # Interactive REPL mode — aligns with React/Ink REPL in src/main.tsx
@@ -323,6 +334,7 @@ async def cli_main(args: list[str] | None = None) -> None:
             verbose=parsed.verbose,
             system_prompt=parsed.system_prompt,
             append_system_prompt=parsed.append_system_prompt,
+            permission_context=permission_context,
         )
 
 
@@ -337,6 +349,7 @@ async def _resume_existing_session(
     non_interactive: bool = False,
     print_prompt: str | None = None,
     output_format: str = "text",
+    permission_context: Any = None,
 ) -> None:
     """Resume an existing session.
 
@@ -431,7 +444,7 @@ async def _resume_existing_session(
     from hare.tools import get_tools
     from hare.commands import get_commands
 
-    permission_context = get_empty_tool_permission_context()
+    permission_context = permission_context or get_empty_tool_permission_context()
     tools = get_tools(permission_context)
     commands = await get_commands(os.getcwd())
 
@@ -440,7 +453,7 @@ async def _resume_existing_session(
             cwd=os.getcwd(),
             tools=tools,
             commands=commands,
-            can_use_tool=_default_can_use_tool,
+            can_use_tool=_permission_can_use_tool,
             get_app_state=lambda: {},
             set_app_state=lambda f: None,
             user_specified_model=model,
@@ -451,6 +464,7 @@ async def _resume_existing_session(
             # context. Without this the loaded messages were counted/printed
             # but discarded, and resume started from an empty conversation.
             initial_messages=loaded_messages,
+            permission_context=permission_context,
         )
     )
 
@@ -607,6 +621,7 @@ async def _run_print_mode(
     append_system_prompt: Optional[str] = None,
     output_format: str = "text",
     mcp_config: list[str] | None = None,
+    permission_context: Any = None,
 ) -> None:
     """Run in non-interactive (print) mode. Mirrors the print path in main.tsx."""
     from hare.sdk import HareClient, HareClientOptions
@@ -628,6 +643,7 @@ async def _run_print_mode(
             append_system_prompt=append_system_prompt,
             mcp_tools=mcp_tools,
             mcp_clients=mcp_clients,
+            permission_context=permission_context,
         )
     )
     try:
@@ -643,11 +659,12 @@ async def _run_repl(
     verbose: bool = False,
     system_prompt: Optional[str] = None,
     append_system_prompt: Optional[str] = None,
+    permission_context: Any = None,
 ) -> None:
     """Run the interactive REPL. Simplified version of the React/Ink REPL."""
     from hare.query_engine import QueryEngine, QueryEngineConfig
 
-    permission_context = get_empty_tool_permission_context()
+    permission_context = permission_context or get_empty_tool_permission_context()
     tools = get_tools(permission_context)
     commands = await get_commands(get_cwd())
 
@@ -656,13 +673,14 @@ async def _run_repl(
             cwd=get_cwd(),
             tools=tools,
             commands=commands,
-            can_use_tool=_default_can_use_tool,
+            can_use_tool=_permission_can_use_tool,
             get_app_state=lambda: {},
             set_app_state=lambda f: None,
             user_specified_model=model,
             verbose=verbose,
             custom_system_prompt=system_prompt,
             append_system_prompt=append_system_prompt,
+            permission_context=permission_context,
         )
     )
 
@@ -803,3 +821,26 @@ async def _default_can_use_tool(
     from hare.app_types.permissions import PermissionAllowDecision
 
     return PermissionAllowDecision(behavior="allow", updated_input=input)
+
+
+async def _permission_can_use_tool(
+    tool: Any,
+    input: Any,
+    context: Any,
+    assistant_msg: Any,
+    tool_use_id: str,
+    force: Any,
+) -> Any:
+    """Apply settings/CLI permission rules for CLI QueryEngine turns."""
+    from hare.utils.permissions.permissions import has_permissions_to_use_tool
+
+    return await has_permissions_to_use_tool(
+        tool, input, context, assistant_msg, tool_use_id, force
+    )
+
+
+def _split_cli_rules(value: str | None) -> list[str]:
+    """Parse Commander-style comma-separated tool rule flags."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]

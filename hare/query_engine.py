@@ -29,6 +29,7 @@ from hare.services.api.logging import (
     update_usage,
 )
 from hare.tool import CanUseToolFn, Tool, ToolUseContext, ToolUseContextOptions
+from hare.app_types.permissions import ToolPermissionContext
 from hare.app_types.command import Command
 from hare.app_types.message import (
     Message,
@@ -75,6 +76,7 @@ class QueryEngineConfig:
     set_sdk_status: Optional[Any] = None
     abort_controller: Optional[asyncio.Event] = None
     snip_replay: Optional[Any] = None
+    permission_context: Optional[ToolPermissionContext] = None
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +201,7 @@ class QueryEngine:
                 mcp_clients=mcp_clients,
                 is_non_interactive_session=True,
                 agent_definitions={"activeAgents": agents, "allAgents": []},
+                permission_context=config.permission_context,
             ),
             read_file_state=self._read_file_state,
             get_app_state=config.get_app_state,

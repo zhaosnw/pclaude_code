@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -11,12 +10,13 @@ from typing import Any
 _HARE_HOME = Path.home() / ".hare"
 
 
-def _get_settings_paths() -> dict[str, Path | None]:
+def _get_settings_paths(cwd: str | Path | None = None) -> dict[str, Path | None]:
     """Return settings file paths per source."""
+    project_dir = Path(cwd) if cwd is not None else Path.cwd()
     return {
         "userSettings": _HARE_HOME / "settings.json",
-        "projectSettings": Path(os.getcwd()) / ".hare" / "settings.json",
-        "localSettings": Path(os.getcwd()) / ".hare" / "settings.local.json",
+        "projectSettings": project_dir / ".hare" / "settings.json",
+        "localSettings": project_dir / ".hare" / "settings.local.json",
     }
 
 
@@ -29,13 +29,15 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
 
 
-def load_permission_rules_from_settings() -> dict[str, dict[str, list[str]]]:
+def load_permission_rules_from_settings(
+    cwd: str | Path | None = None,
+) -> dict[str, dict[str, list[str]]]:
     """Load all permission rules from user, project, and local settings.
 
     Returns {source: {allow: [...], deny: [...], ask: [...]}}.
     """
     result: dict[str, dict[str, list[str]]] = {}
-    for source, path in _get_settings_paths().items():
+    for source, path in _get_settings_paths(cwd).items():
         if path and path.exists():
             rules = get_permission_rules_for_source(source, path)
             if any(rules.values()):
@@ -137,6 +139,48 @@ def delete_permission_rule_from_settings(
                 pass
 
     return removed
+
+
+def load_permission_context(
+    cwd: str | Path | None = None,
+    *,
+    mode: str = "default",
+    allowed_tools: list[str] | None = None,
+    disallowed_tools: list[str] | None = None,
+) -> Any:
+    """Build the runtime permission context used by CLI QueryEngine turns.
+
+    Settings rules retain their source so the permission engine can apply the
+    same source-priority ordering as the TypeScript implementation. CLI flags
+    are represented as ``cliArg`` rules and therefore override settings.
+    """
+    from hare.app_types.permissions import ToolPermissionContext
+
+    rules = load_permission_rules_from_settings(cwd)
+    context = ToolPermissionContext(
+        mode=mode,  # type: ignore[arg-type]
+        always_allow_rules={
+            source: values["allow"]
+            for source, values in rules.items()
+            if values.get("allow")
+        },
+        always_deny_rules={
+            source: values["deny"]
+            for source, values in rules.items()
+            if values.get("deny")
+        },
+        always_ask_rules={
+            source: values["ask"]
+            for source, values in rules.items()
+            if values.get("ask")
+        },
+        is_bypass_permissions_mode_available=mode == "bypassPermissions",
+    )
+    if allowed_tools:
+        context.always_allow_rules["cliArg"] = list(allowed_tools)
+    if disallowed_tools:
+        context.always_deny_rules["cliArg"] = list(disallowed_tools)
+    return context
 
 
 def should_allow_managed_permission_rules_only() -> bool:

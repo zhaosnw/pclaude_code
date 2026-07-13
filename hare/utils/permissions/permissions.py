@@ -341,11 +341,14 @@ async def has_permissions_to_use_tool(
     9. Passthrough to user
     """
 
-    permission_context = (
-        context.options.commands[0].permission_context
-        if context.options.commands
-        else None
-    ) or ToolPermissionContext(mode="default")
+    permission_context = getattr(context.options, "permission_context", None)
+    if permission_context is None:
+        permission_context = (
+            getattr(context.options.commands[0], "permission_context", None)
+            if context.options.commands
+            else None
+        )
+    permission_context = permission_context or ToolPermissionContext(mode="default")
 
     # Step 1: Force decision
     if force_decision:
