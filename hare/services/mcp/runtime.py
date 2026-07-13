@@ -10,6 +10,8 @@ from hare.services.mcp.config import load_explicit_mcp_config_files
 
 
 class _McpRuntimeTool(ToolBase):
+    _annotations: dict[str, Any]
+
     def __init__(self, server_name: str, raw: dict[str, Any], pool: McpClientPool) -> None:
         self.server_name = server_name
         self.tool_name = str(raw["name"])
@@ -17,6 +19,7 @@ class _McpRuntimeTool(ToolBase):
         self.search_hint = str(raw.get("description", self.name))
         self._schema = raw.get("inputSchema", raw.get("input_schema", {"type": "object"}))
         self._pool = pool
+        self._annotations = raw.get("annotations", {})
         self.mcp_info = type("McpInfo", (), {"server_name": server_name})()
 
     def input_schema(self) -> dict[str, Any]:
