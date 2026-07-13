@@ -69,8 +69,8 @@ typecheck: mypy-regression ## Run scoped mypy regression gate
 typecheck-full: ## Show full scoped mypy diagnostics
 	cd .. && mypy hare/ --ignore-missing-imports --show-error-codes --warn-unreachable --exclude '^(hare/(hare|tests|frontend|docs|scripts)(/|$$)|hare\.egg-info/)'
 
-mypy-regression: ## Check mypy error count against baseline (520)
-	cd .. && python scripts/check_mypy_regression.py --baseline 520
+mypy-regression: ## Check mypy error count against baseline (497)
+	cd .. && python scripts/check_mypy_regression.py --baseline 497
 
 security: ## Run bandit (high severity + high confidence, same gate as CI)
 	bandit -r hare/ --severity-level high --confidence-level high
