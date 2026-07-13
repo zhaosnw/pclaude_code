@@ -129,10 +129,32 @@ def main() -> None:
     # Same seed filesystem the e2e_runner gives hare, so fs-dependent tools
     # (Read/etc.) see identical inputs on both sides of the differential.
     sandbox = tempfile.mkdtemp(prefix="ts-ref-sbx-")
+    # Pre-trust the sandbox workspace. Without this, a project
+    # .claude/settings.json triggers the workspace-trust check: the reference
+    # CLI then ignores project settings in print mode (and the recovered build
+    # hangs forever waiting for the trust dialog), so permission/settings cases
+    # would record the wrong behavior or never finish.
+    (Path(cfg_dir) / ".claude.json").write_text(
+        json.dumps(
+            {
+                "hasCompletedOnboarding": True,
+                "projects": {sandbox: {"hasTrustDialogAccepted": True}},
+            }
+        ),
+        encoding="utf-8",
+    )
     seeds_root = HARE_ROOT / "alignment" / "seeds"
-    for rel in case.get("fs", {}).get("seed", []):
-        src = seeds_root / rel
-        dst = Path(sandbox) / rel
+    for entry in case.get("fs", {}).get("seed", []):
+        # String entries copy seeds/<rel> to sandbox/<rel>. Dict entries
+        # ({"src": ..., "dst": ...}) let cases place a shared seed at a
+        # case-specific sandbox path (e.g. a settings file at
+        # .claude/settings.json) without colliding in the seeds root.
+        if isinstance(entry, dict):
+            rel_src, rel_dst = entry["src"], entry["dst"]
+        else:
+            rel_src = rel_dst = entry
+        src = seeds_root / rel_src
+        dst = Path(sandbox) / rel_dst
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.exists():
             shutil.copy2(src, dst)

@@ -117,9 +117,17 @@ def _prepare_env(
 
 def _make_sandbox(case: dict[str, Any]) -> Path:
     sandbox = Path(tempfile.mkdtemp(prefix="hare-e2e-"))
-    for rel in case.get("fs", {}).get("seed", []):
-        src = SEEDS_ROOT / rel
-        dst = sandbox / rel
+    for entry in case.get("fs", {}).get("seed", []):
+        # String entries copy seeds/<rel> to sandbox/<rel>. Dict entries
+        # ({"src": ..., "dst": ...}) let cases place a shared seed at a
+        # case-specific sandbox path (e.g. a settings file at
+        # .claude/settings.json) without colliding in the seeds root.
+        if isinstance(entry, dict):
+            rel_src, rel_dst = entry["src"], entry["dst"]
+        else:
+            rel_src = rel_dst = entry
+        src = SEEDS_ROOT / rel_src
+        dst = sandbox / rel_dst
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.exists():
             shutil.copy2(src, dst)
