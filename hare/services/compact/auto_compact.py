@@ -240,13 +240,43 @@ async def auto_compact_if_needed(
     if not should_auto_compact(messages, model, query_source, snip_tokens_freed):
         return {"compactionResult": None, "consecutiveFailures": None}
 
+    from hare.utils.hooks import (
+        execute_post_compact_hooks,
+        execute_pre_compact_hooks,
+        execute_stop_hooks,
+    )
+
     try:
+        # The reference brackets compaction with PreCompact/PostCompact
+        # (hooks.ts:3974,4046); hare fired neither.
+        await execute_pre_compact_hooks(
+            trigger="auto", tool_use_context=tool_use_context
+        )
+
         result: CompactionResult = await compact_conversation(
             messages,
             context=tool_use_context,
             cache_params=cache_safe_params,
             is_auto=True,
             call_model=call_model,
+        )
+
+        # The reference runs the summarization as a subagent query, so a
+        # SubagentStop hook fires for it even when the turn dispatched no Task
+        # (confirmed by probing the reference with a compact-only fixture).
+        # hare summarizes with a direct model call, so emit it explicitly.
+        async for _ in execute_stop_hooks(
+            agent_id="compact",
+            tool_use_context=tool_use_context,
+            messages=list(messages),
+            agent_type="compact",
+        ):
+            pass
+
+        await execute_post_compact_hooks(
+            trigger="auto",
+            compact_summary=result.summary,
+            tool_use_context=tool_use_context,
         )
 
         # Build compactionResult in the shape core.py expects.

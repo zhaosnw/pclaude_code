@@ -4,6 +4,43 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":920,\"duration_api_ms\":16,\"num_turns\":3,\"result\":\"Continued after compaction.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.9018899999999999,\"usage\":{\"input_tokens\":150500,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":18,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":300500,\"outputTokens\":26,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.9018899999999999,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
-  "stderr": "Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.\n"
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":1207,\"duration_api_ms\":13,\"num_turns\":3,\"result\":\"Continued after compaction.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.9018899999999999,\"usage\":{\"input_tokens\":150500,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":18,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":300500,\"outputTokens\":26,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.9018899999999999,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stderr": "",
+  "files": [
+    {
+      "path": "fired_PostCompact.txt",
+      "sha256": "05a75182a1c77a475cdf617a5790599a85fca11e12b19759a74179d5c47561e1",
+      "text": "PostCompact\n"
+    },
+    {
+      "path": "fired_PreCompact.txt",
+      "sha256": "7dc8389a2dd2989f488927d229a1218f65c370a2964809883e1e61a9cbd0667d",
+      "text": "PreCompact\n"
+    },
+    {
+      "path": "fired_SessionEnd.txt",
+      "sha256": "cea00bb698b8c762ed1504efac1dbb446fe787f0532ac72a777414369cb823fa",
+      "text": "SessionEnd\n"
+    },
+    {
+      "path": "fired_SessionStart.txt",
+      "sha256": "83c1d13ee2b3df495c1864f1290fd046a1ccb23673c028328f5556d4a32436ea",
+      "text": "SessionStart\n"
+    },
+    {
+      "path": "fired_SubagentStop.txt",
+      "sha256": "cf272ce39f504584ea375d1f8562b6c238cfd3450fd8aad440561b0559872edd",
+      "text": "SubagentStop\n"
+    },
+    {
+      "path": "fired_UserPromptSubmit.txt",
+      "sha256": "c49e93cc3f32ef1a5605210b77096e8fce0c0ea7da834f718e5aa88e6174e59a",
+      "text": "UserPromptSubmit\n"
+    },
+    {
+      "path": "hook_event_probe.py",
+      "sha256": "6244e91303c27a672757a76f023b1c345c499103d4ac827f8d38bd3d92eb6e75",
+      "text": "#!/usr/bin/env python3\n\"\"\"Records which hook event fired, one marker file per event.\n\nRegistered for every session/prompt lifecycle event so a case can assert the\nexact set the reference fires — the events carry no tool and produce no output,\nso the marker files are the only observable.\n\"\"\"\n\nimport json\nimport sys\n\npayload = sys.stdin.read()\ntry:\n    event = json.loads(payload)\nexcept json.JSONDecodeError:\n    event = {}\n\nname = event.get(\"hook_event_name\", \"UNKNOWN\")\nwith open(f\"fired_{name}.txt\", \"w\", encoding=\"utf-8\") as handle:\n    handle.write(f\"{name}\\n\")\n\nprint(json.dumps({}))\n"
+    }
+  ]
 }

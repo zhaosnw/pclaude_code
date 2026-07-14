@@ -371,6 +371,32 @@ async def execute_user_prompt_submit_hooks(
     )
 
 
+async def execute_pre_compact_hooks(
+    trigger: str = "auto",
+    custom_instructions: str = "",
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """PreCompact hooks (hooks.ts:3974)."""
+    return await _run_simple_event_hooks(
+        "PreCompact",
+        {"trigger": trigger, "custom_instructions": custom_instructions},
+        tool_use_context,
+    )
+
+
+async def execute_post_compact_hooks(
+    trigger: str = "auto",
+    compact_summary: str = "",
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """PostCompact hooks (hooks.ts:4046)."""
+    return await _run_simple_event_hooks(
+        "PostCompact",
+        {"trigger": trigger, "compact_summary": compact_summary},
+        tool_use_context,
+    )
+
+
 async def execute_task_completed_hooks(
     task_id: str = "",
     subject: str = "",
