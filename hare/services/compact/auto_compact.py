@@ -47,23 +47,81 @@ def get_effective_context_window_size(model: str) -> int:
 
 
 def get_auto_compact_threshold(model: str) -> int:
-    """Effective window minus auto-compact buffer."""
-    return max(0, get_effective_context_window_size(model) - AUTOCOMPACT_BUFFER_TOKENS)
+    """Effective window minus auto-compact buffer.
+
+    CLAUDE_AUTOCOMPACT_PCT_OVERRIDE lowers the threshold to a percentage of the
+    window (autoCompact.ts:79). The reference exposes it to make auto-compact
+    reachable in tests; without it a differential case would have to build a
+    real 150k-token conversation.
+    """
+    window = get_effective_context_window_size(model)
+    threshold = max(0, window - AUTOCOMPACT_BUFFER_TOKENS)
+
+    env_percent = os.environ.get("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE")
+    if env_percent:
+        try:
+            parsed = float(env_percent)
+        except ValueError:
+            return threshold
+        if 0 < parsed <= 100:
+            return min(int(window * (parsed / 100)), threshold)
+    return threshold
+
+
+def _message_usage(message: Any) -> Any:
+    inner = (
+        message.get("message")
+        if isinstance(message, dict)
+        else getattr(message, "message", None)
+    )
+    if inner is None:
+        return None
+    return (
+        inner.get("usage") if isinstance(inner, dict) else getattr(inner, "usage", None)
+    )
+
+
+def _tokens_from_usage(usage: Any) -> int:
+    def field(name: str) -> int:
+        value = usage.get(name) if isinstance(usage, dict) else getattr(usage, name, 0)
+        return int(value or 0)
+
+    return (
+        field("input_tokens")
+        + field("cache_creation_input_tokens")
+        + field("cache_read_input_tokens")
+        + field("output_tokens")
+    )
+
+
+def _rough_estimate(messages: list[Any]) -> int:
+    raw = ""
+    for m in messages:
+        inner = m.get("message") if isinstance(m, dict) else getattr(m, "message", None)
+        if inner is None:
+            continue
+        content = (
+            inner.get("content", "")
+            if isinstance(inner, dict)
+            else getattr(inner, "content", "")
+        )
+        raw += content if isinstance(content, str) else str(content)
+    return estimate_tokens(raw)
 
 
 def _token_count_with_estimation(messages: list[Any]) -> int:
-    """Estimate token count from messages."""
-    raw = ""
-    for m in messages:
-        if isinstance(m, dict):
-            content = m.get("message", {}).get("content", "")
-            raw += content if isinstance(content, str) else str(content)
-        elif hasattr(m, "message"):
-            msg = getattr(m, "message", None)
-            if msg is not None:
-                content = getattr(msg, "content", "")
-                raw += content if isinstance(content, str) else str(content)
-    return estimate_tokens(raw)
+    """Context size: real usage from the last assistant message, plus an
+    estimate of everything after it.
+
+    Port of tokenCountWithEstimation (utils/tokens.ts:226). hare estimated from
+    message text alone and ignored usage entirely, so a conversation the API
+    reports as 150k tokens looked tiny and auto-compact never fired.
+    """
+    for i in range(len(messages) - 1, -1, -1):
+        usage = _message_usage(messages[i])
+        if usage:
+            return _tokens_from_usage(usage) + _rough_estimate(messages[i + 1 :])
+    return _rough_estimate(messages)
 
 
 def _env_truthy(name: str) -> bool:
@@ -151,8 +209,13 @@ async def auto_compact_if_needed(
     query_source: Optional[str] = None,
     tracking: Optional[dict[str, Any]] = None,
     snip_tokens_freed: int = 0,
+    call_model: Any = None,
 ) -> dict[str, Any]:
     """Run auto-compaction if needed, returning result dict for the query loop.
+
+    ``call_model`` is the query loop's model callable: the reference generates
+    the summary with a real model turn, so compaction must go through the same
+    path (and, under a fixture, consume the same response).
 
     Returns a dict with:
         - compactionResult: CompactionResult-like dict or None
@@ -183,6 +246,7 @@ async def auto_compact_if_needed(
             context=tool_use_context,
             cache_params=cache_safe_params,
             is_auto=True,
+            call_model=call_model,
         )
 
         # Build compactionResult in the shape core.py expects.

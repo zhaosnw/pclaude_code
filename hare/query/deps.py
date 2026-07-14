@@ -68,9 +68,17 @@ def production_deps() -> QueryDeps:
             cursor_path=os.environ.get("HARE_MODEL_FIXTURE_CURSOR"),
         )
 
+    # Compaction summarizes through the same model callable as the main loop
+    # (the reference spends one model turn on the summary), so bind it here
+    # rather than letting auto_compact reach for a separate API path — under a
+    # fixture that would bypass the replay entirely.
+    async def autocompact(*args: Any, **kwargs: Any) -> Any:
+        kwargs.setdefault("call_model", call_model)
+        return await auto_compact_if_needed(*args, **kwargs)
+
     return QueryDeps(
         call_model=call_model,
         microcompact=microcompact_messages,
-        autocompact=auto_compact_if_needed,
+        autocompact=autocompact,
         uuid=lambda: str(_uuid.uuid4()),
     )

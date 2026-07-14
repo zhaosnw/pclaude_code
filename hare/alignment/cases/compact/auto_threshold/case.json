@@ -1,0 +1,14 @@
+{
+  "case_id": "compact.auto_threshold",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "go", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "go", "--output-format", "json", "--dangerously-skip-permissions"]
+  },
+  "fixture": "hare/alignment/fixtures/compact_auto_threshold.json",
+  "env": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "1"
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "golden_source": "ts-reference"}
+}

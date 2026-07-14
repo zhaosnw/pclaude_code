@@ -1,0 +1,29 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "Task", "input": {"description": "make a marker", "prompt": "create subagent_ran.txt", "subagent_type": "general-purpose"}}
+      ],
+      "usage": {"input_tokens": 50, "output_tokens": 15}
+    },
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "sub_1", "name": "Bash", "input": {"command": "touch subagent_ran.txt", "description": "create the marker"}}
+      ],
+      "usage": {"input_tokens": 60, "output_tokens": 12}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "Subagent created the file."}],
+      "usage": {"input_tokens": 80, "output_tokens": 8}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "The subagent finished."}],
+      "usage": {"input_tokens": 110, "output_tokens": 8}
+    }
+  ]
+}

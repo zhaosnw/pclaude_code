@@ -125,6 +125,12 @@ def main() -> None:
     env["DISABLE_AUTOUPDATER"] = "1"
     env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
     env.setdefault("API_TIMEOUT_MS", "30000")
+    # Case-declared env reaches the reference too (e2e_runner already passes it
+    # to hare); without it a case like compact, which needs
+    # CLAUDE_AUTOCOMPACT_PCT_OVERRIDE to trip the threshold, records the
+    # non-compacting path.
+    for key, value in case.get("env", {}).items():
+        env[key] = str(value)
 
     # Same seed filesystem the e2e_runner gives hare, so fs-dependent tools
     # (Read/etc.) see identical inputs on both sides of the differential.

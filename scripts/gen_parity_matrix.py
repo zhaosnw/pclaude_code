@@ -41,9 +41,15 @@ ALIGNED_EVIDENCE = {
     "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
     "hook.PostToolUse": "hooks.posttool_output",
     "hook.Stop": "hooks.stop_hook",
+    # NOT listed: tool.AgentTool. subagent.task_dispatch is recorded but is a
+    # known_divergence (parent/subagent state is not isolated), and a
+    # known_divergence is evidence of a gap, not of alignment.
     "settings.permissions.allow": "permission.settings_allow_bash",
     "settings.permissions.deny": "permission.settings_deny_read",
 }
+# compact.auto_threshold passes but has no matrix row of its own: auto-compact
+# is a runtime behavior, not a CLI flag / tool / hook / settings key. Add a
+# behavior dimension before claiming it here.
 
 # Hook events the reference can emit (coreTypes.ts HOOK_EVENTS). Tool-lifecycle
 # and session-lifecycle events are the ones a headless code agent must honor.

@@ -31,7 +31,9 @@ ERROR_MESSAGE_USER_ABORT = "User aborted compaction"
 class CompactionResult:
     """Result of a compaction operation."""
 
-    new_messages: list[dict[str, Any]] = field(default_factory=list)
+    # Message objects (UserMessage/AssistantMessage) in the query loop; dicts
+    # in offline callers.
+    new_messages: list[Any] = field(default_factory=list)
     summary: str = ""
     tokens_before: int = 0
     tokens_after: int = 0
@@ -39,10 +41,20 @@ class CompactionResult:
     user_display_message: str = ""
 
 
-def strip_images_from_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Strip image blocks from messages before compaction."""
+def strip_images_from_messages(messages: list[Any]) -> list[Any]:
+    """Strip image blocks from messages before compaction.
+
+    The query loop holds UserMessage/AssistantMessage objects, not dicts. This
+    assumed dicts and raised AttributeError on the first message, which
+    auto_compact_if_needed swallowed into a failure counter — so auto-compact
+    never actually ran. Objects are passed through untouched (they carry no
+    image blocks in the headless path); dict messages are still rewritten.
+    """
     result = []
     for msg in messages:
+        if not isinstance(msg, dict):
+            result.append(msg)
+            continue
         if msg.get("type") != "user":
             result.append(msg)
             continue
@@ -89,17 +101,103 @@ def find_compaction_point(
     return max(1, min(target_idx, len(messages) - 2))
 
 
+def _message_text(msg: Any) -> tuple[str, str]:
+    """Return ``(type, text)`` for a message that may be a dict or an object."""
+    if isinstance(msg, dict):
+        msg_type = msg.get("type", "")
+        inner: Any = msg.get("message", {})
+    else:
+        msg_type = getattr(msg, "type", "")
+        inner = getattr(msg, "message", None)
+    content = (
+        inner.get("content", "")
+        if isinstance(inner, dict)
+        else getattr(inner, "content", "")
+    )
+    if isinstance(content, str):
+        return msg_type, content
+    if isinstance(content, list):
+        parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        return msg_type, "\n".join(p for p in parts if p)
+    return msg_type, ""
+
+
+def _local_summary(old_messages: list[Any]) -> str:
+    """Offline fallback used when no model is available (unit tests)."""
+    parts = []
+    for msg in old_messages:
+        msg_type, text = _message_text(msg)
+        if text:
+            parts.append(f"[{msg_type}] {text[:200]}")
+    return "Previous conversation summary:\n" + "\n".join(parts[:20])
+
+
+async def _summarize_via_model(
+    call_model: Any,
+    old_messages: list[Any],
+    custom_instructions: Optional[str],
+) -> str:
+    """Ask the model to summarize the conversation being compacted.
+
+    The reference sends one summarization request (compact/prompt.ts) and uses
+    the reply as the summary; hare only ever built a local string, so compaction
+    consumed no model turn and produced a different conversation than the
+    reference's from that point on.
+    """
+    from hare.services.compact.prompt import get_compact_prompt
+
+    transcript = "\n\n".join(
+        f"[{msg_type}] {text}"
+        for msg_type, text in (_message_text(m) for m in old_messages)
+        if text
+    )
+    instruction = get_compact_prompt(custom_instructions=custom_instructions or "")
+    payload = {
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": f"{transcript}\n\n{instruction}"}
+                ],
+            }
+        ],
+        "system_prompt": [],
+        "tools": [],
+        "options": {},
+    }
+
+    chunks: list[str] = []
+    result = call_model(payload)
+    if hasattr(result, "__aiter__"):
+        async for item in result:
+            _, text = _message_text(item)
+            if text:
+                chunks.append(text)
+    else:
+        item = await result
+        _, text = _message_text(item)
+        if text:
+            chunks.append(text)
+    summary = "\n".join(chunks).strip()
+    return summary or _local_summary(old_messages)
+
+
 async def compact_messages(
-    messages: list[dict[str, Any]],
+    messages: list[Any],
     *,
     custom_instructions: Optional[str] = None,
     max_tokens: int = 200_000,
+    call_model: Any = None,
 ) -> CompactionResult:
     """
     Compact a list of messages by summarizing older ones.
 
-    In the full implementation, this would call the API to generate
-    a summary. Currently uses a simplified local summary.
+    With ``call_model`` the summary comes from the model, as in the reference.
+    Without it (unit tests, offline callers) a local summary is used.
     """
     if len(messages) < 3:
         raise ValueError(ERROR_MESSAGE_NOT_ENOUGH_MESSAGES)
@@ -110,25 +208,28 @@ async def compact_messages(
     old_messages = stripped[:split_point]
     kept_messages = stripped[split_point:]
 
-    summary_parts = []
-    for msg in old_messages:
-        msg_type = msg.get("type", "")
-        content = msg.get("message", {}).get("content", "")
-        if isinstance(content, str) and content:
-            summary_parts.append(f"[{msg_type}] {content[:200]}")
-        elif isinstance(content, list):
-            for block in content:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    summary_parts.append(f"[{msg_type}] {block['text'][:200]}")
+    if call_model is not None:
+        summary = await _summarize_via_model(
+            call_model, old_messages, custom_instructions
+        )
+    else:
+        summary = _local_summary(old_messages)
 
-    summary = "Previous conversation summary:\n" + "\n".join(summary_parts[:20])
+    # The compacted conversation is replayed to the model, so the summary has to
+    # be a real message object like the rest of the loop's messages — a bare
+    # dict blew up downstream ("'dict' object has no attribute 'type'").
+    from hare.utils.messages import create_user_message
 
-    summary_message = {
-        "type": "system",
-        "message": {"role": "system", "content": summary},
-    }
+    summary_message = create_user_message(
+        content=[{"type": "text", "text": summary}],
+    )
 
-    new_messages = [summary_message] + kept_messages
+    # The compacted conversation IS the summary: query.ts replaces
+    # messagesForQuery with the post-compact messages, and the reference's next
+    # request carries exactly one message. Keeping the tail here both
+    # double-counted turns (every kept message is yielded again) and left the
+    # context it was supposed to free.
+    new_messages = [summary_message]
 
     return CompactionResult(
         new_messages=new_messages,
@@ -140,17 +241,19 @@ async def compact_messages(
 
 
 async def compact_conversation(
-    messages: list[dict[str, Any]],
+    messages: list[Any],
     context: Any = None,
     cache_params: Any = None,
     is_auto: bool = False,
     custom_instructions: str = "",
     is_partial: bool = False,
+    call_model: Any = None,
 ) -> CompactionResult:
-    """Full conversation compaction (API-based in production)."""
+    """Full conversation compaction (model-generated summary when available)."""
     return await compact_messages(
         messages,
         custom_instructions=custom_instructions or None,
+        call_model=call_model,
     )
 
 

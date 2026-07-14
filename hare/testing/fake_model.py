@@ -36,36 +36,45 @@ def fixture_call_model(
 ) -> Callable[..., AsyncGenerator[Any, None]]:
     """Return a stateful ``call_model`` that yields the next response per call.
 
-    ``cursor_path`` persists the position across processes. A multi-invocation
-    case (``--resume``) runs one hare process per turn, while the TS reference
-    replays against a single mock server whose response stream keeps advancing.
-    Without a shared cursor the second hare process restarts at response 0 and
-    replays the first turn, which is not what the reference does.
+    ``cursor_path`` makes the replay position shared rather than per-callable.
+    The reference replays everything — extra invocations of a ``--resume`` case,
+    a subagent's own loop, a compaction summary — against ONE mock server whose
+    response stream keeps advancing. hare builds a separate call_model per
+    engine (and per process), so each would otherwise restart at response 0 and
+    replay earlier turns. The cursor is re-read on every call, not cached, so a
+    child engine and its parent see each other's progress.
     """
     responses = list(fixture["responses"])
     index = {"i": 0}
-    if cursor_path:
+
+    def _read_index() -> int:
+        if not cursor_path:
+            return index["i"]
         try:
             with open(cursor_path, encoding="utf-8") as handle:
-                index["i"] = int(handle.read().strip() or 0)
+                return int(handle.read().strip() or 0)
         except (OSError, ValueError):
-            index["i"] = 0
+            return 0
+
+    def _write_index(value: int) -> None:
+        index["i"] = value
+        if not cursor_path:
+            return
+        try:
+            with open(cursor_path, "w", encoding="utf-8") as handle:
+                handle.write(str(value))
+        except OSError:
+            pass
 
     def call_model(*_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         async def _gen() -> AsyncGenerator[Any, None]:
-            i = index["i"]
+            i = _read_index()
             if i >= len(responses):
                 raise AssertionError(
                     f"fixture exhausted: model called {i + 1} times but fixture "
                     f"only has {len(responses)} responses"
                 )
-            index["i"] = i + 1
-            if cursor_path:
-                try:
-                    with open(cursor_path, "w", encoding="utf-8") as handle:
-                        handle.write(str(index["i"]))
-                except OSError:
-                    pass
+            _write_index(i + 1)
             r = responses[i]
             usage = r.get("usage", {"input_tokens": 0, "output_tokens": 0})
             stop_reason = r.get("stop_reason", "end_turn")
