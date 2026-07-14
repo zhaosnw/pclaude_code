@@ -155,6 +155,23 @@ class _BashTool(ToolBase):
                     message=f"Bash command '{command}' requires confirmation.",
                 )
 
+        # Output redirection targets are write operations. Mirrors
+        # validateOutputRedirections (pathValidation.ts): in default mode a
+        # redirect target requires explicit write permission even inside the
+        # working directory — Bash(...) allow rules do not cover it, so this
+        # must run before the pipeline's content-rule stage.
+        from hare.tools_impl.BashTool.path_validation import (
+            validate_output_redirections,
+        )
+
+        redirect_decision = validate_output_redirections(
+            command,
+            permission_context,
+            getattr(context, "cwd", None) or os.getcwd(),
+        )
+        if redirect_decision is not None:
+            return redirect_decision
+
         # No specific rules matched → passthrough to pipeline
         return PermissionPassthrough(
             behavior="passthrough",

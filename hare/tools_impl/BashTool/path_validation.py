@@ -81,6 +81,80 @@ def check_path_constraints(
     return {"safe": True, "paths": paths}
 
 
+_QUOTED_SEGMENT_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
+# An output redirection: optional fd digits, > or >>, optional >| clobber,
+# then a target word. `2>&1`-style fd duplication has no target word (the
+# char class excludes &) and is skipped.
+_OUTPUT_REDIRECT_RE = re.compile(r"(?:^|[\s;|&])(?:\d+)?>{1,2}\|?\s*([^\s;|&<>]+)")
+
+
+def extract_output_redirections(command: str) -> list[str]:
+    """Return output-redirection target words (`>` / `>>`) in a command.
+
+    Port of extractOutputRedirections (utils/bash/commands.ts), reduced to
+    target extraction: quoted segments are masked so operators inside quotes
+    are not treated as redirections.
+    """
+    masked = _QUOTED_SEGMENT_RE.sub(lambda m: " " * len(m.group(0)), command)
+    targets = []
+    for m in _OUTPUT_REDIRECT_RE.finditer(masked):
+        start, end = m.span(1)
+        targets.append(command[start:end])
+    return targets
+
+
+def validate_output_redirections(
+    command: str,
+    permission_context: Any,
+    cwd: str,
+) -> Optional[Any]:
+    """Gate output-redirection write targets behind edit permission.
+
+    Port of validateOutputRedirections (tools/BashTool/pathValidation.ts) +
+    isPathAllowed step 3 (utils/permissions/pathValidation.ts:198): `>` and
+    `>>` are create operations, so even a target inside the working directory
+    is only auto-allowed in acceptEdits mode; otherwise the decision is `ask`
+    (which headless print mode converts into a recorded denial). `/dev/null`
+    is always safe. Simplification vs TS: path-content allow rules
+    (Edit(path)-style) are not consulted because hare does not support them
+    yet; that fallthrough ends in `ask` upstream as well.
+    """
+    mode = getattr(permission_context, "mode", "default")
+    if mode == "bypassPermissions":
+        return None
+    targets = extract_output_redirections(command)
+    if not targets:
+        return None
+
+    from hare.app_types.permissions import PermissionAskDecision
+
+    base_cwd = os.path.realpath(cwd or os.getcwd())
+    working_dirs = [base_cwd]
+    additional = getattr(permission_context, "additional_working_directories", None) or {}
+    working_dirs += [os.path.realpath(p) for p in additional]
+
+    for target in targets:
+        clean = target.strip("'\"")
+        resolved = os.path.realpath(_resolve_path(clean, base_cwd))
+        if resolved == "/dev/null":
+            continue
+        in_working_dir = any(
+            resolved == d or resolved.startswith(d + os.sep) for d in working_dirs
+        )
+        if in_working_dir and mode == "acceptEdits":
+            continue
+        dir_list = ", ".join(f"'{d}'" for d in working_dirs)
+        return PermissionAskDecision(
+            behavior="ask",
+            message=(
+                f"Output redirection to '{resolved}' was blocked. For "
+                f"security, Hare may only write to files in the allowed "
+                f"working directories for this session: {dir_list}."
+            ),
+        )
+    return None
+
+
 def extract_paths_from_command(command: str) -> list[str]:
     """Extract file paths from a command string."""
     paths = []

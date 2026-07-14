@@ -1517,7 +1517,12 @@ async def _run_tools_fallback(
                 tool_use_id,
                 None,
             )
-            if getattr(permission, "behavior", "allow") == "deny":
+            # toolExecution.ts:995 blocks on any non-allow decision, so an
+            # 'ask' that reaches here (no interactive prompt in headless) must
+            # stop the tool, not run it. 'passthrough' is hare's "no rule
+            # matched" sentinel — the reference resolves that case through the
+            # auto-mode classifier and runs the tool, so it stays allowed here.
+            if getattr(permission, "behavior", "allow") in ("deny", "ask"):
                 reason = getattr(permission, "message", "Permission denied")
                 yield _ToolUpdate(
                     message=create_user_message(

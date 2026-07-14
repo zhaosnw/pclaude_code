@@ -119,6 +119,48 @@ class QueryEngine:
                 else getattr(last, "uuid", None)
             )
 
+    def _wrap_can_use_tool_tracking(self, can_use_tool: CanUseToolFn) -> CanUseToolFn:
+        """Record every non-allow permission decision on the engine.
+
+        Mirrors the canUseTool wrapper in QueryEngine.ts (``Track denials for
+        SDK reporting``): the denial list is emitted verbatim as the
+        ``permission_denials`` field of result messages.
+        """
+        from hare.utils.messages.system_init import sdk_compat_tool_name
+
+        async def tracked(
+            tool: Tool,
+            input: dict[str, Any],
+            tool_use_context: ToolUseContext,
+            assistant_message: Any,
+            tool_use_id: str,
+            force_decision: Optional[str] = None,
+        ) -> Any:
+            result = await can_use_tool(
+                tool,
+                input,
+                tool_use_context,
+                assistant_message,
+                tool_use_id,
+                force_decision,
+            )
+            # TS records every non-allow decision, but its canUseTool only ever
+            # returns allow/deny/ask — 'passthrough' is internal to
+            # tool.checkPermissions there. In hare it is a terminal "no rule
+            # matched" value that headless treats as allowed, so it is not a
+            # denial.
+            if getattr(result, "behavior", None) in ("deny", "ask"):
+                self._permission_denials.append(
+                    {
+                        "tool_name": sdk_compat_tool_name(tool.name),
+                        "tool_use_id": tool_use_id,
+                        "tool_input": input,
+                    }
+                )
+            return result
+
+        return tracked
+
     async def submit_message(
         self,
         prompt: str | list[Any],
@@ -241,12 +283,18 @@ class QueryEngine:
         turn_count = 1
         last_stop_reason: Optional[str] = None
 
+        # Track denials for SDK reporting (QueryEngine.ts wraps canUseTool the
+        # same way: every non-allow decision is recorded on the result object).
+        tracked_can_use_tool = (
+            self._wrap_can_use_tool_tracking(can_use_tool) if can_use_tool else None
+        )
+
         query_params = QueryParams(
             messages=messages,
             system_prompt=system_prompt,
             user_context=user_context_override or {},
             system_context=system_context_override or {},
-            can_use_tool=can_use_tool,
+            can_use_tool=tracked_can_use_tool,
             tool_use_context=tool_use_context,
             fallback_model=config.fallback_model,
             query_source=query_source_override or "sdk",
