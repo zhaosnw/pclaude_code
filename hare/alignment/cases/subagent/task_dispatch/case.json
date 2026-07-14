@@ -7,6 +7,5 @@
   },
   "fixture": "hare/alignment/fixtures/subagent_task_dispatch.json",
   "expected": {"exit_code": 0, "stdout_kind": "json"},
-  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"},
-  "known_divergence": "The subagent runs and its file effect matches, but hare's parent engine does not isolate it: the parent's usage total includes the subagent's turns (190 vs the reference's 160, which counts only the parent's own two turns), the parent takes no follow-up turn after Task returns, and the parent's result is the subagent's last text instead of its own. Needs subagent/parent state isolation in QueryEngine; the golden already records the reference behavior."
+  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"}
 }

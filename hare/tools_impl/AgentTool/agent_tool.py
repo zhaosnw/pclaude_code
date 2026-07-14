@@ -26,7 +26,11 @@ LEGACY_AGENT_TOOL_NAME = "Task"
 
 class _AgentTool(ToolBase):
     name = AGENT_TOOL_NAME
-    aliases = [LEGACY_AGENT_TOOL_NAME.lower(), "task", "subagent"]
+    # AgentTool.tsx:228 — the alias is the legacy name verbatim. hare lowercased
+    # it, and tool lookup is exact (Tool.ts:352), so a model emitting the
+    # documented "Task" name found no tool at all: the turn fell through to the
+    # "tool not found" path and the agent was never dispatched.
+    aliases = [LEGACY_AGENT_TOOL_NAME]
     search_hint = "delegate work to a subagent"
     max_result_size_chars = 100_000
 

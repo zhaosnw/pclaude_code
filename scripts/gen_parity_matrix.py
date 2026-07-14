@@ -41,9 +41,7 @@ ALIGNED_EVIDENCE = {
     "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
     "hook.PostToolUse": "hooks.posttool_output",
     "hook.Stop": "hooks.stop_hook",
-    # NOT listed: tool.AgentTool. subagent.task_dispatch is recorded but is a
-    # known_divergence (parent/subagent state is not isolated), and a
-    # known_divergence is evidence of a gap, not of alignment.
+    "tool.AgentTool": "subagent.task_dispatch",
     "settings.permissions.allow": "permission.settings_allow_bash",
     "settings.permissions.deny": "permission.settings_deny_read",
 }
