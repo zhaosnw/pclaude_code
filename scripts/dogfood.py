@@ -190,3 +190,5 @@ print()
 failed = [n for n, ok, _ in results if not ok]
 print(f"{len(results) - len(failed)}/{len(results)} scenarios passed"
       + (f"; FAILED: {failed}" if failed else ""))
+# Exit non-zero so `make dogfood` actually gates on the result.
+sys.exit(1 if failed else 0)

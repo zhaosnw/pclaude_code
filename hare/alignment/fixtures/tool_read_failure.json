@@ -1,0 +1,35 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "Read",
+          "input": {
+            "file_path": "does_not_exist.txt"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 12
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "The read failed."
+        }
+      ],
+      "usage": {
+        "input_tokens": 85,
+        "output_tokens": 7
+      }
+    }
+  ]
+}

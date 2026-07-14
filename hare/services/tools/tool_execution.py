@@ -282,20 +282,37 @@ async def run_tool_use(
             ),
         )
 
-        # PostToolUse hooks run after a successful call (toolExecution.ts), and
-        # like the pre-tool ones had no caller at all. Their attachment/context
-        # messages are yielded into the conversation.
+        # PostToolUse hooks run after a successful call (toolExecution.ts:1483),
+        # PostToolUseFailure after a failed one (:1700). The reference's tools
+        # throw on failure, so the split falls out of try/except; hare's tools
+        # return a result carrying is_error instead, so key off that — otherwise
+        # a failed tool wrongly fired PostToolUse and never PostToolUseFailure.
+        failed = isinstance(block_param, dict) and bool(block_param.get("is_error"))
         try:
-            from hare.services.tools.tool_hooks import run_post_tool_use_hooks
+            from hare.services.tools.tool_hooks import (
+                run_post_tool_use_failure_hooks,
+                run_post_tool_use_hooks,
+            )
 
-            async for hook_result in run_post_tool_use_hooks(
-                tool_use_context,
-                tool,
-                tool_use_id,
-                getattr(assistant_message, "uuid", "") or "",
-                tool_input,
-                tool_result.data,
-            ):
+            if failed:
+                hook_stream = run_post_tool_use_failure_hooks(
+                    tool_use_context,
+                    tool,
+                    tool_use_id,
+                    getattr(assistant_message, "uuid", "") or "",
+                    tool_input,
+                    str(block_param.get("content", "")),
+                )
+            else:
+                hook_stream = run_post_tool_use_hooks(
+                    tool_use_context,
+                    tool,
+                    tool_use_id,
+                    getattr(assistant_message, "uuid", "") or "",
+                    tool_input,
+                    tool_result.data,
+                )
+            async for hook_result in hook_stream:
                 hook_message = hook_result.get("message")
                 if hook_message is not None:
                     yield MessageUpdateLazy(message=hook_message)
@@ -318,6 +335,26 @@ async def run_tool_use(
                 source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
             )
         )
+
+        # PostToolUseFailure, like the other tool hooks, had no caller at all.
+        try:
+            from hare.services.tools.tool_hooks import (
+                run_post_tool_use_failure_hooks,
+            )
+
+            async for hook_result in run_post_tool_use_failure_hooks(
+                tool_use_context,
+                tool,
+                tool_use_id,
+                getattr(assistant_message, "uuid", "") or "",
+                tool_input,
+                str(tool_err),
+            ):
+                hook_message = hook_result.get("message")
+                if hook_message is not None:
+                    yield MessageUpdateLazy(message=hook_message)
+        except Exception:  # noqa: BLE001 - a broken hook must not mask the error
+            pass
 
 
 def _get_abort_signal(tool_use_context: Any) -> Any:

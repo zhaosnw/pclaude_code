@@ -12,6 +12,14 @@ repository with an isolated `HARE_CONFIG_DIR` / `CLAUDE_CONFIG_DIR`.
 | Permission denial | A deny rule blocks a requested tool with a clear user-facing message. | Rule, command, stdout/stderr, and absence of the mutation. |
 | MCP tool | The seeded `mcp_echo_server.py` connects and completes one `echo` call. | Config, tool result, and process exit. |
 
+Run with `make dogfood` (exits non-zero on any failure).
+
+## Known Flake
+
+The MCP scenario hung once (120s timeout, not slowness) and then passed four
+consecutive runs. Suspected race in stdio server startup. If it recurs, capture
+the hung process's stack before killing it rather than re-running.
+
 ## Recording Rules
 
 - Do not use real network services or a real user configuration directory.

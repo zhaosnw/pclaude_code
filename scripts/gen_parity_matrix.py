@@ -47,6 +47,7 @@ ALIGNED_EVIDENCE = {
     "hook.SubagentStop": "hooks.lifecycle_events",
     "hook.PreCompact": "compact.auto_threshold",
     "hook.PostCompact": "compact.auto_threshold",
+    "hook.PostToolUseFailure": "hooks.posttool_failure",
     "settings.hooks": "hooks.lifecycle_events",
     "tool.AgentTool": "subagent.task_dispatch",
     "settings.permissions.allow": "permission.settings_allow_bash",

@@ -357,6 +357,17 @@ class ToolBase:
     def map_tool_result_to_tool_result_block_param(
         self, content: Any, tool_use_id: str
     ) -> dict[str, Any]:
+        # hare's tools report failure by returning {"error": ...} rather than
+        # raising, so the block has to carry is_error the way the reference's
+        # does — the model could not otherwise tell a failed tool from a
+        # successful one, and PostToolUseFailure hooks never fired.
+        if isinstance(content, dict) and content.get("error"):
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_use_id,
+                "content": str(content["error"]),
+                "is_error": True,
+            }
         text = str(content) if content is not None else ""
         return {
             "type": "tool_result",

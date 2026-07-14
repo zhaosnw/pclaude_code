@@ -1,0 +1,26 @@
+{
+  "case_id": "hooks.posttool_failure",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":171,\"duration_api_ms\":12,\"num_turns\":2,\"result\":\"The read failed.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.00066,\"usage\":{\"input_tokens\":125,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":19,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":125,\"outputTokens\":19,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.00066,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stderr": "Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.\n",
+  "files": [
+    {
+      "path": "fired_PostToolUseFailure.txt",
+      "sha256": "8775a3685ecc11e7dc95e89b79ee2f014aacbee51f360cdf1f5258999b824cc3",
+      "text": "PostToolUseFailure\n"
+    },
+    {
+      "path": "fired_PreToolUse.txt",
+      "sha256": "c979dd89e8d12003480ea5b482a8b3e3e2866e8030117e6b6d2f04021abb96cf",
+      "text": "PreToolUse\n"
+    },
+    {
+      "path": "hook_event_probe.py",
+      "sha256": "6244e91303c27a672757a76f023b1c345c499103d4ac827f8d38bd3d92eb6e75",
+      "text": "#!/usr/bin/env python3\n\"\"\"Records which hook event fired, one marker file per event.\n\nRegistered for every session/prompt lifecycle event so a case can assert the\nexact set the reference fires — the events carry no tool and produce no output,\nso the marker files are the only observable.\n\"\"\"\n\nimport json\nimport sys\n\npayload = sys.stdin.read()\ntry:\n    event = json.loads(payload)\nexcept json.JSONDecodeError:\n    event = {}\n\nname = event.get(\"hook_event_name\", \"UNKNOWN\")\nwith open(f\"fired_{name}.txt\", \"w\", encoding=\"utf-8\") as handle:\n    handle.write(f\"{name}\\n\")\n\nprint(json.dumps({}))\n"
+    }
+  ]
+}

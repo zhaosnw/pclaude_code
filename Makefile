@@ -83,6 +83,13 @@ stub-check: ## Count stubs, TODOs, NotImplementedErrors
 align-check: ## Verify alignment data integrity
 	python scripts/verify_alignment.py
 
+dogfood: ## Drive the real CLI end-to-end (file change, resume, denial, MCP, hook)
+	python scripts/dogfood.py
+
+parity-matrix: ## Regenerate the parity matrix and validate its aligned rows
+	python scripts/gen_parity_matrix.py
+	python scripts/gen_parity_matrix.py --check
+
 align-regressions: ## Check for alignment regressions
 	python scripts/check_alignment_regressions.py
 
