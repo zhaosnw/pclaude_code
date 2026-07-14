@@ -1,0 +1,21 @@
+{
+  "case_id": "hooks.posttool_output",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":822,\"duration_api_ms\":14,\"num_turns\":2,\"result\":\"The command ran.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.00066,\"usage\":{\"input_tokens\":125,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":19,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":125,\"outputTokens\":19,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.00066,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stderr": "Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.\n",
+  "files": [
+    {
+      "path": "hook_post_ran.txt",
+      "sha256": "08240f4dacbfda35f87f4c0c094d1277b24493b09a1b9164e74034eeaa0a9502",
+      "text": "PostToolUse Bash\n"
+    },
+    {
+      "path": "hook_post_tool.py",
+      "sha256": "668a831c4da4c534430a77760df7157a4bc92be3f3fbfa14ceeec0052f15202d",
+      "text": "#!/usr/bin/env python3\n\"\"\"PostToolUse hook that records that it ran and returns additional context.\"\"\"\n\nimport json\nimport sys\n\npayload = sys.stdin.read()\ntry:\n    event = json.loads(payload)\nexcept json.JSONDecodeError:\n    event = {}\n\nwith open(\"hook_post_ran.txt\", \"w\", encoding=\"utf-8\") as handle:\n    handle.write(f\"{event.get('hook_event_name', '?')} {event.get('tool_name', '?')}\\n\")\n\nprint(\n    json.dumps(\n        {\n            \"hookSpecificOutput\": {\n                \"hookEventName\": \"PostToolUse\",\n                \"additionalContext\": \"post-hook context marker\",\n            }\n        }\n    )\n)\n"
+    }
+  ]
+}

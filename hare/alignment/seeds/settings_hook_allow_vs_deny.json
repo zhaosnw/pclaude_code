@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "deny": ["Bash(echo *)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 hook_allow_bash.py"
+          }
+        ]
+      }
+    ]
+  }
+}

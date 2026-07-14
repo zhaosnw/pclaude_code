@@ -1,0 +1,17 @@
+{
+  "case_id": "hooks.pretool_allow",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run it", "--output-format", "json"]
+  },
+  "fixture": "hare/alignment/fixtures/hook_bash_allowed.json",
+  "fs": {
+    "seed": [
+      "hook_allow_bash.py",
+      {"src": "settings_hook_allow_bash.json", "dst": ".claude/settings.json"},
+      {"src": "settings_hook_allow_bash.json", "dst": ".hare/settings.json"}
+    ]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"}
+}

@@ -1,0 +1,18 @@
+{
+  "case_id": "hooks.posttool_output",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run it", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "run it", "--output-format", "json", "--dangerously-skip-permissions"]
+  },
+  "fixture": "hare/alignment/fixtures/hook_bash_allowed.json",
+  "fs": {
+    "seed": [
+      "hook_post_tool.py",
+      {"src": "settings_hook_post_tool.json", "dst": ".claude/settings.json"},
+      {"src": "settings_hook_post_tool.json", "dst": ".hare/settings.json"}
+    ]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"}
+}

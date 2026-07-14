@@ -1,0 +1,21 @@
+{
+  "case_id": "hooks.stop_hook",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":837,\"duration_api_ms\":14,\"num_turns\":2,\"result\":\"The command ran.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.00066,\"usage\":{\"input_tokens\":125,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":19,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":125,\"outputTokens\":19,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.00066,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stderr": "Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.\n",
+  "files": [
+    {
+      "path": "hook_stop.py",
+      "sha256": "838384a065a949c4bc4f5ed9da61e554aea3d31c65a82eea0430ce504e72ddde",
+      "text": "#!/usr/bin/env python3\n\"\"\"Stop hook that records it ran at the end of the turn.\"\"\"\n\nimport json\nimport sys\n\npayload = sys.stdin.read()\ntry:\n    event = json.loads(payload)\nexcept json.JSONDecodeError:\n    event = {}\n\nwith open(\"hook_stop_ran.txt\", \"w\", encoding=\"utf-8\") as handle:\n    handle.write(f\"{event.get('hook_event_name', '?')}\\n\")\n\nprint(json.dumps({}))\n"
+    },
+    {
+      "path": "hook_stop_ran.txt",
+      "sha256": "ccdf7f59c6483a179e8ad026a1b002e8789adab8a2c385d146bc862dbfb64190",
+      "text": "Stop\n"
+    }
+  ]
+}

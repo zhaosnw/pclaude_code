@@ -250,6 +250,26 @@ async def run_tool_use(
             ),
         )
 
+        # PostToolUse hooks run after a successful call (toolExecution.ts), and
+        # like the pre-tool ones had no caller at all. Their attachment/context
+        # messages are yielded into the conversation.
+        try:
+            from hare.services.tools.tool_hooks import run_post_tool_use_hooks
+
+            async for hook_result in run_post_tool_use_hooks(
+                tool_use_context,
+                tool,
+                tool_use_id,
+                getattr(assistant_message, "uuid", "") or "",
+                tool_input,
+                tool_result.data,
+            ):
+                hook_message = hook_result.get("message")
+                if hook_message is not None:
+                    yield MessageUpdateLazy(message=hook_message)
+        except Exception:  # noqa: BLE001 - a broken hook must not fail the tool
+            pass
+
     except Exception as tool_err:
         duration_ms = int((time.time() - start_time) * 1000)
         yield MessageUpdateLazy(

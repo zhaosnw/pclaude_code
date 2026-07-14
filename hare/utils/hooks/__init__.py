@@ -226,6 +226,36 @@ async def _exec_http_hook(
         return {"success": False, "stdout": "", "exit_code": 1, "stderr": str(e)}
 
 
+def _last_assistant_text(messages: list[Any]) -> str | None:
+    """Text of the last assistant message, for the Stop hook payload.
+
+    TS: hooks.ts:3662 — lets a Stop hook inspect the final response without
+    reading the transcript.
+    """
+    for message in reversed(messages):
+        msg_type = (
+            message.get("type") if isinstance(message, dict) else getattr(message, "type", None)
+        )
+        if msg_type != "assistant":
+            continue
+        inner = (
+            message.get("message") if isinstance(message, dict) else getattr(message, "message", None)
+        )
+        content = (
+            inner.get("content") if isinstance(inner, dict) else getattr(inner, "content", None)
+        )
+        if not isinstance(content, list):
+            continue
+        parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        text = "\n".join(parts).strip()
+        return text or None
+    return None
+
+
 async def execute_stop_hooks(
     permission_mode: Any = None,
     abort_signal: Any = None,
@@ -249,16 +279,27 @@ async def execute_stop_hooks(
     if abort_signal is not None and getattr(abort_signal, "aborted", False):
         return
 
+    # The payload goes to command hooks as JSON on stdin, so it must be the
+    # documented Stop/SubagentStop shape (hooks.ts:3680), not hare's internal
+    # objects — a hook that reads hook_event_name got nothing before this.
+    from hare.services.tools.tool_hooks import _create_base_hook_input
+
+    hook_input: dict[str, Any] = _create_base_hook_input(
+        tool_use_context, permission_mode or ""
+    )
+    hook_input["hook_event_name"] = event
+    hook_input["last_assistant_message"] = _last_assistant_text(messages or [])
+    if agent_id:
+        hook_input["agent_id"] = agent_id
+        if agent_type:
+            hook_input["agent_type"] = agent_type
+    else:
+        hook_input["stop_hook_active"] = stop_hook_active
+
     # Run hooks concurrently
     tasks = []
     for handler in handlers:
-        context = {
-            "permission_mode": permission_mode,
-            "tool_use_context": tool_use_context,
-            "messages": messages or [],
-            "agent_id": agent_id,
-        }
-        tasks.append(_run_single_hook(handler, context))
+        tasks.append(_run_single_hook(handler, dict(hook_input)))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for r in results:
