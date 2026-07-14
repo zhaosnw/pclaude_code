@@ -131,7 +131,7 @@ def test_get_connection_none_by_default() -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_connect_and_call_echo_server() -> None:
+async def test_connect_and_call_echo_server(tmp_path: Path) -> None:
     """Integration test: connect to the alignment echo MCP server and call it."""
     pool = get_mcp_client_pool()
 
@@ -146,6 +146,9 @@ async def test_connect_and_call_echo_server() -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         bufsize=0,  # unbuffered
+        # The server drops a call marker in its cwd (the alignment cases use it
+        # as proof the tool really ran); without this it lands in the repo root.
+        cwd=tmp_path,
     )
 
     from hare.services.mcp.client import StdioSession
