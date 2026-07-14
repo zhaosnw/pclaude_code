@@ -1,0 +1,26 @@
+{
+  "case_id": "mcp.stdio_tool_call",
+  "status": "ok",
+  "state": {
+    "exit_code": 0
+  },
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":50,\"duration_api_ms\":13,\"num_turns\":2,\"result\":\"The echo server replied.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.000735,\"usage\":{\"input_tokens\":140,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":21,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":140,\"outputTokens\":21,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.000735,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stderr": "",
+  "files": [
+    {
+      "path": "mcp_echo_called.txt",
+      "sha256": "ab4f58874f7511f8ea6d069040112423c3c889e2fb145a781374a33e41caf501",
+      "text": "{\"text\": \"ping-42\"}\n"
+    },
+    {
+      "path": "mcp_echo_config.json",
+      "sha256": "383a38d5aeba5a4eee5a2f4cb6f73f4b82a4493d00e0680d004be2dbd527ea0c",
+      "text": "{\n  \"mcpServers\": {\n    \"echo\": {\n      \"command\": \"python\",\n      \"args\": [\"mcp_echo_server.py\"]\n    }\n  }\n}\n"
+    },
+    {
+      "path": "mcp_echo_server.py",
+      "sha256": "713e5d46995221f21b54e92e2e81ba8d20c4117cd8dfbf2028a1118382a57c63",
+      "text": "#!/usr/bin/env python3\n\"\"\"Minimal deterministic stdio MCP server for alignment cases.\n\nIt implements the smallest protocol surface needed by the MCP coverage axis:\n``initialize``, ``tools/list``, and ``tools/call`` for one ``echo`` tool.\nEvery response is newline-delimited JSON-RPC, with no diagnostic stdout noise.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport sys\nfrom typing import Any\n\n\ndef respond(request_id: Any, result: dict[str, Any]) -> None:\n    sys.stdout.write(json.dumps({\"jsonrpc\": \"2.0\", \"id\": request_id, \"result\": result}) + \"\\n\")\n    sys.stdout.flush()\n\n\nfor line in sys.stdin:\n    line = line.strip()\n    if not line:\n        continue\n    try:\n        message = json.loads(line)\n    except json.JSONDecodeError:\n        continue\n\n    method = message.get(\"method\", \"\")\n    request_id = message.get(\"id\")\n    if request_id is None:\n        continue\n    if method == \"initialize\":\n        respond(\n            request_id,\n            {\n                \"protocolVersion\": \"2024-11-05\",\n                \"capabilities\": {\"tools\": {}},\n                \"serverInfo\": {\"name\": \"alignment-echo\", \"version\": \"1.0\"},\n            },\n        )\n    elif method == \"tools/list\":\n        respond(\n            request_id,\n            {\n                \"tools\": [\n                    {\n                        \"name\": \"echo\",\n                        \"description\": \"Echoes the supplied text.\",\n                        \"inputSchema\": {\n                            \"type\": \"object\",\n                            \"properties\": {\"text\": {\"type\": \"string\"}},\n                            \"required\": [\"text\"],\n                        },\n                    }\n                ]\n            },\n        )\n    elif method == \"tools/call\":\n        arguments = message.get(\"params\", {}).get(\"arguments\", {})\n        # Land a marker in the sandbox. The scripted fixture makes both sides\n        # emit the same result text whether or not the tool actually ran, so\n        # this file is the only proof the invocation reached the server.\n        with open(\"mcp_echo_called.txt\", \"w\", encoding=\"utf-8\") as handle:\n            handle.write(json.dumps(arguments, sort_keys=True) + \"\\n\")\n        respond(request_id, {\"content\": [{\"type\": \"text\", \"text\": json.dumps(arguments)}]})\n    elif method == \"resources/list\":\n        respond(request_id, {\"resources\": []})\n    else:\n        respond(request_id, {})\n"
+    }
+  ]
+}

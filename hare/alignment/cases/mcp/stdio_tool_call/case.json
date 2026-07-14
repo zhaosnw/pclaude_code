@@ -1,0 +1,14 @@
+{
+  "case_id": "mcp.stdio_tool_call",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "echo ping-42", "--mcp-config", "mcp_echo_config.json", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+    "ts_argv": ["-p", "echo ping-42", "--mcp-config", "mcp_echo_config.json", "--output-format", "json", "--dangerously-skip-permissions"]
+  },
+  "fixture": "hare/alignment/fixtures/mcp_echo_tool_call.json",
+  "fs": {
+    "seed": ["mcp_echo_config.json", "mcp_echo_server.py"]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"}
+}

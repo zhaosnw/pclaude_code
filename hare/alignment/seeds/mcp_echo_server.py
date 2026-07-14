@@ -59,6 +59,11 @@ for line in sys.stdin:
         )
     elif method == "tools/call":
         arguments = message.get("params", {}).get("arguments", {})
+        # Land a marker in the sandbox. The scripted fixture makes both sides
+        # emit the same result text whether or not the tool actually ran, so
+        # this file is the only proof the invocation reached the server.
+        with open("mcp_echo_called.txt", "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(arguments, sort_keys=True) + "\n")
         respond(request_id, {"content": [{"type": "text", "text": json.dumps(arguments)}]})
     elif method == "resources/list":
         respond(request_id, {"resources": []})

@@ -28,7 +28,18 @@ class _McpRuntimeTool(ToolBase):
     def is_read_only(self, _input: dict[str, Any]) -> bool:
         return bool(raw_annotations(self).get("readOnlyHint", False))
 
-    async def call(self, args: dict[str, Any], **_kwargs: Any) -> ToolResult:
+    async def call(
+        self,
+        args: dict[str, Any],
+        context: Any = None,
+        can_use_tool: Any = None,
+        parent_message: Any = None,
+        on_progress: Any = None,
+    ) -> ToolResult:
+        # The executors invoke tools positionally (tool_execution.py:179), so
+        # this must accept the full Tool.call signature; a keyword-only tail
+        # made every MCP invocation raise TypeError and surface as a tool error
+        # instead of reaching the server.
         result = await self._pool.call_tool(self.server_name, self.tool_name, args)
         return ToolResult(data=result)
 

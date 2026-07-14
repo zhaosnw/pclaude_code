@@ -1,0 +1,17 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "mcp__echo__echo", "input": {"text": "ping-42"}}
+      ],
+      "usage": {"input_tokens": 45, "output_tokens": 14}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "The echo server replied."}],
+      "usage": {"input_tokens": 95, "output_tokens": 7}
+    }
+  ]
+}

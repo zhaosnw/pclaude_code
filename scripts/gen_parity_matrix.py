@@ -36,6 +36,7 @@ ALIGNED_EVIDENCE = {
     "cli.--continue": "session.continue_basic",
     "cli.--resume": "session.resume_basic",
     "cli.--permission-mode": "permission.mode_bypass",
+    "cli.--mcp-config": "mcp.stdio_tool_call",
 }
 
 
