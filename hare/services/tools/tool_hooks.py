@@ -369,6 +369,16 @@ async def _execute_tool_hooks(
     from hare.utils.hooks import _get_matching_hooks
 
     handlers = _get_matching_hooks(evt)  # type: ignore[arg-type]
+    # Settings hooks carry a tool-name matcher (TS: hooks.ts matches the
+    # matcher against the tool before running the command). Registered Python
+    # callbacks have no matcher and always run.
+    from hare.utils.hooks.settings_hooks import matcher_matches_tool
+
+    handlers = [
+        handler
+        for handler in handlers
+        if matcher_matches_tool(getattr(handler, "matcher", None), tool_name)
+    ]
     if not handlers:
         return
 

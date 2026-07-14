@@ -251,6 +251,13 @@ async def cli_main(args: list[str] | None = None) -> None:
         disallowed_tools=_split_cli_rules(parsed.disallowed_tools),
     )
 
+    # Settings-declared hooks are inert until they are in the registry the tool
+    # pipeline reads. Register alongside the permission context so print,
+    # resume, and REPL turns all honor the same settings files.
+    from hare.utils.hooks.settings_hooks import register_settings_hooks
+
+    register_settings_hooks(cwd)
+
     # Resolve the prompt and mode. Sources, in order: -p/--print value, a
     # positional prompt, or — when stdin is piped (not a TTY) — stdin itself
     # (Claude Code reads stdin as the prompt for `echo "..." | claude`). An

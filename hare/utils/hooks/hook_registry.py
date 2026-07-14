@@ -18,12 +18,19 @@ from hare.utils.debug import log_for_debugging
 
 @dataclass
 class HookHandler:
-    """A registered hook handler."""
+    """A registered hook handler.
+
+    ``handler`` is a Python callback for embedded/registered hooks. Hooks
+    declared in settings files have no callback: they carry a shell command in
+    ``name`` and run through the command path, gated by ``matcher``.
+    """
 
     event: HookEvent
     name: str
-    handler: Callable[..., Any]
+    handler: Optional[Callable[..., Any]]
     source: str = ""  # "settings" | "skill" | "frontmatter"
+    matcher: Optional[str] = None
+    type: str = "command"
 
 
 class AsyncHookRegistry:
@@ -36,14 +43,23 @@ class AsyncHookRegistry:
         self,
         event: HookEvent,
         name: str,
-        handler: Callable[..., Any],
+        handler: Optional[Callable[..., Any]],
         source: str = "",
+        matcher: Optional[str] = None,
+        hook_type: str = "command",
     ) -> None:
         """Register a hook handler for an event."""
         if event not in self._handlers:
             self._handlers[event] = []
         self._handlers[event].append(
-            HookHandler(event=event, name=name, handler=handler, source=source)
+            HookHandler(
+                event=event,
+                name=name,
+                handler=handler,
+                source=source,
+                matcher=matcher,
+                type=hook_type,
+            )
         )
 
     def unregister(self, event: HookEvent, name: str) -> None:
@@ -70,6 +86,10 @@ class AsyncHookRegistry:
 
         results: list[dict[str, Any]] = []
         for handler in handlers:
+            # Settings hooks have no callback; they run as shell commands
+            # through the tool pipeline, not through emit().
+            if handler.handler is None:
+                continue
             try:
                 result = handler.handler(context or {})
                 if asyncio.iscoroutine(result):

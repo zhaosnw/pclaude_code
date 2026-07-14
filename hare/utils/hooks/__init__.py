@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Optional
 
@@ -94,10 +95,17 @@ async def _run_single_hook(
         elif hook_type == "http":
             result = await _exec_http_hook(handler, context, timeout_sec)
         else:
-            # Default: command hook
+            # Default: command hook. The hook protocol passes the event payload
+            # as JSON on stdin (hooks.ts), so a hook that reads stdin — which is
+            # how it learns the tool name and input — needs input_data here.
             if not command:
                 return {}
-            result = await exec_hook(command, timeout=timeout_sec)
+            result = await exec_hook(
+                command,
+                timeout=timeout_sec,
+                input_data=context,
+                cwd=os.getcwd(),
+            )
     except Exception as e:
         return {
             "blockingError": HookBlockingError(

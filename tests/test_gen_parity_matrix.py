@@ -31,7 +31,9 @@ def test_generator_extracts_cli_and_tool_features(tmp_path: Path) -> None:
     assert "implemented-unverified" in content
     assert "| `cli.--continue` | `aligned` | `session.continue_basic` | `P1` |" in content
     assert "| `cli.--resume` | `aligned` | `session.resume_basic` | `P1` |" in content
-    assert "| `cli.--mcp-config` | `implemented-unverified` | `-` | `P1` |" in content
+    assert "| `cli.--mcp-config` | `aligned` | `mcp.stdio_tool_call` | `P1` |" in content
+    # A flag with no golden yet still reports as unverified.
+    assert "| `cli.--debug` | `implemented-unverified` | `-` | `P1` |" in content
 
 
 def test_check_rejects_aligned_feature_without_a_golden_case(tmp_path: Path) -> None:

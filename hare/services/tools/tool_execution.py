@@ -121,9 +121,54 @@ async def run_tool_use(
         )
         return
 
+    # PreToolUse hooks run before the permission check and can decide it
+    # outright (toolExecution.ts:800 → hookPermissionResult wins over the
+    # rule-based flow). Without this the whole hook pipeline was dead code:
+    # nothing invoked run_pre_tool_use_hooks.
+    hook_permission: Any = None
+    try:
+        from hare.services.tools.tool_hooks import run_pre_tool_use_hooks
+
+        async for hook_result in run_pre_tool_use_hooks(
+            tool_use_context,
+            tool,
+            tool_input,
+            tool_use_id,
+            getattr(assistant_message, "uuid", "") or "",
+        ):
+            kind = hook_result.get("type")
+            if kind == "hookPermissionResult":
+                hook_permission = hook_result.get("hookPermissionResult")
+            elif kind == "hookUpdatedInput":
+                updated = hook_result.get("updatedInput")
+                if isinstance(updated, dict):
+                    tool_input = updated
+    except Exception:  # noqa: BLE001 - a broken hook must not kill the turn
+        hook_permission = None
+
+    if hook_permission is not None and getattr(
+        hook_permission, "behavior", "allow"
+    ) in ("deny", "ask"):
+        reason = getattr(hook_permission, "message", "Blocked by hook")
+        yield MessageUpdateLazy(
+            message=create_user_message(
+                content=[
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_id,
+                        "content": reason,
+                        "is_error": True,
+                    }
+                ],
+                tool_use_result=reason,
+                source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
+            )
+        )
+        return
+
     # Permission check
     try:
-        if can_use_tool is not None:
+        if can_use_tool is not None and hook_permission is None:
             permission = await can_use_tool(
                 tool,
                 tool_input,
