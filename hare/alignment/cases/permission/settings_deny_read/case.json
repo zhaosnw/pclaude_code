@@ -1,0 +1,17 @@
+{
+  "case_id": "permission.settings_deny_read",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "read me.txt", "--output-format", "json"]
+  },
+  "fixture": "hare/alignment/fixtures/tool_read_deny.json",
+  "fs": {
+    "seed": [
+      "me.txt",
+      {"src": "settings_deny_read.json", "dst": ".claude/settings.json"},
+      {"src": "settings_deny_read.json", "dst": ".hare/settings.json"}
+    ]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "golden_source": "ts-reference"}
+}

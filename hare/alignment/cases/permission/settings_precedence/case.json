@@ -1,0 +1,18 @@
+{
+  "case_id": "permission.settings_precedence",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run the echo", "--output-format", "json"]
+  },
+  "fixture": "hare/alignment/fixtures/tool_bash_allow_echo.json",
+  "fs": {
+    "seed": [
+      {"src": "settings_allow_bash.json", "dst": ".claude/settings.json"},
+      {"src": "settings_deny_bash_echo.json", "dst": ".claude/settings.local.json"},
+      {"src": "settings_allow_bash.json", "dst": ".hare/settings.json"},
+      {"src": "settings_deny_bash_echo.json", "dst": ".hare/settings.local.json"}
+    ]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "golden_source": "ts-reference"}
+}

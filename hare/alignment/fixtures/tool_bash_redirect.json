@@ -1,0 +1,17 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "echo allowed-marker > allow_out.txt", "description": "write a marker file"}}
+      ],
+      "usage": {"input_tokens": 40, "output_tokens": 15}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "The command ran."}],
+      "usage": {"input_tokens": 90, "output_tokens": 6}
+    }
+  ]
+}

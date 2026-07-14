@@ -1,0 +1,16 @@
+{
+  "case_id": "permission.settings_allow_redirect_denied",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run the echo", "--output-format", "json"]
+  },
+  "fixture": "hare/alignment/fixtures/tool_bash_redirect.json",
+  "fs": {
+    "seed": [
+      {"src": "settings_allow_bash.json", "dst": ".claude/settings.json"},
+      {"src": "settings_allow_bash.json", "dst": ".hare/settings.json"}
+    ]
+  },
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "check_files": true, "golden_source": "ts-reference"}
+}
