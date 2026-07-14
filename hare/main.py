@@ -664,6 +664,11 @@ async def _run_print_mode(
     try:
         exit_code = await _emit_print_stream(client.stream(prompt), output_format)
     finally:
+        # SessionEnd fires as the run tears down (hooks.ts:4113); hare never
+        # emitted it, so a SessionEnd hook in settings was inert.
+        from hare.utils.hooks import execute_session_end_hooks
+
+        await execute_session_end_hooks(reason="exit")
         await client.close()
     if exit_code:
         sys.exit(exit_code)

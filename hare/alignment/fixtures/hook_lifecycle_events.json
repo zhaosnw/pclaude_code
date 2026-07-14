@@ -1,0 +1,50 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "Task",
+          "input": {
+            "description": "marker",
+            "prompt": "touch it",
+            "subagent_type": "general-purpose"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 50,
+        "output_tokens": 12
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "Subagent done."
+        }
+      ],
+      "usage": {
+        "input_tokens": 60,
+        "output_tokens": 8
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "Main done."
+        }
+      ],
+      "usage": {
+        "input_tokens": 90,
+        "output_tokens": 8
+      }
+    }
+  ]
+}

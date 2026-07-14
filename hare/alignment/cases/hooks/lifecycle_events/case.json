@@ -1,0 +1,44 @@
+{
+  "case_id": "hooks.lifecycle_events",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "go",
+      "--output-format",
+      "json",
+      "--permission-mode",
+      "bypassPermissions"
+    ],
+    "ts_argv": [
+      "-p",
+      "go",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "fixture": "hare/alignment/fixtures/hook_lifecycle_events.json",
+  "fs": {
+    "seed": [
+      "hook_event_probe.py",
+      {
+        "src": "settings_hook_lifecycle.json",
+        "dst": ".claude/settings.json"
+      },
+      {
+        "src": "settings_hook_lifecycle.json",
+        "dst": ".hare/settings.json"
+      }
+    ]
+  },
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "match": "json_structural",
+    "check_files": true,
+    "golden_source": "ts-reference"
+  }
+}

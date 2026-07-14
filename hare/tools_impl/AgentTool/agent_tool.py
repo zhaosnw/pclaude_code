@@ -10,7 +10,9 @@ complex, multi-step tasks autonomously.
 from __future__ import annotations
 
 from typing import Any, Optional
+from uuid import uuid4
 
+from hare.app_types.ids import AgentId
 from hare.tool import ToolBase, ToolResult, ToolUseContext
 from hare.app_types.permissions import (
     EXTERNAL_PERMISSION_MODES,
@@ -232,6 +234,10 @@ class _AgentTool(ToolBase):
                     set_app_state=lambda f: None,
                     user_specified_model=resolved_model or None,
                     verbose=False,
+                    # Identifies the child as a subagent, so its teardown fires
+                    # SubagentStop rather than a main-session Stop.
+                    agent_id=AgentId(str(uuid4())),
+                    agent_type=subagent_type or "general-purpose",
                 )
             )
 

@@ -28,6 +28,7 @@ from hare.services.api.logging import (
     empty_usage,
     update_usage,
 )
+from hare.app_types.ids import AgentId
 from hare.tool import CanUseToolFn, Tool, ToolUseContext, ToolUseContextOptions
 from hare.app_types.permissions import ToolPermissionContext
 from hare.app_types.command import Command
@@ -60,6 +61,9 @@ class QueryEngineConfig:
     set_app_state: Optional[Any] = None
     initial_messages: Optional[list[Message]] = None
     read_file_cache: dict[str, Any] = field(default_factory=dict)
+    # Set by AgentTool for a subagent's engine; None for the main session.
+    agent_id: Optional[AgentId] = None
+    agent_type: Optional[str] = None
     custom_system_prompt: Optional[str] = None
     append_system_prompt: Optional[str] = None
     user_specified_model: Optional[str] = None
@@ -103,6 +107,7 @@ class QueryEngine:
         self._mutable_messages: list[Message] = list(config.initial_messages or [])
         self._abort_controller = config.abort_controller or asyncio.Event()
         self._permission_denials: list[dict[str, Any]] = []
+        self._session_start_emitted = False
         self._total_usage = empty_usage()
         self._has_handled_orphaned_permission = False
         self._read_file_state: dict[str, Any] = dict(config.read_file_cache)
@@ -251,6 +256,11 @@ class QueryEngine:
             messages=list(self._mutable_messages),
             discovered_skill_names=self._discovered_skill_names,
             loaded_nested_memory_paths=self._loaded_nested_memory_paths,
+            # A subagent's engine must identify itself: execute_stop_hooks picks
+            # SubagentStop over Stop by agent_id, and with it always unset every
+            # subagent's teardown looked like a main-session Stop.
+            agent_id=config.agent_id,
+            agent_type=config.agent_type,
         )
 
         # Create user message and push
@@ -274,6 +284,28 @@ class QueryEngine:
             "tools": [t.name for t in tools],
             "model": main_loop_model,
         }
+
+        # Session/prompt lifecycle hooks. hare had no executor for these, so a
+        # SessionStart or UserPromptSubmit hook declared in settings never ran.
+        # SessionStart fires once per engine; UserPromptSubmit on every turn.
+        from hare.utils.hooks import (
+            execute_session_start_hooks,
+            execute_user_prompt_submit_hooks,
+        )
+
+        if not self._session_start_emitted:
+            self._session_start_emitted = True
+            await execute_session_start_hooks(
+                source="startup",
+                session_id=get_session_id(),
+                model=main_loop_model,
+                agent_type=tool_use_context.agent_type or "",
+                tool_use_context=tool_use_context,
+            )
+        await execute_user_prompt_submit_hooks(
+            prompt if isinstance(prompt, str) else str(prompt),
+            tool_use_context=tool_use_context,
+        )
 
         # Load skills (cache-only in headless/SDK mode)
         skills = await get_slash_command_tool_skills(get_cwd())

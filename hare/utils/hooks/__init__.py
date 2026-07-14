@@ -307,6 +307,70 @@ async def execute_stop_hooks(
             yield r
 
 
+async def _run_simple_event_hooks(
+    event: HookEvent,
+    hook_input: dict[str, Any],
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """Run every hook registered for a session/prompt-lifecycle event.
+
+    These events carry no tool, so there is no matcher to apply and nothing to
+    gate: the reference fires them for every registered hook. hare had no
+    executor for them at all, so SessionStart/SessionEnd/UserPromptSubmit hooks
+    declared in settings never ran.
+    """
+    handlers = _get_matching_hooks(event)
+    if not handlers:
+        return []
+
+    from hare.services.tools.tool_hooks import _create_base_hook_input
+
+    payload: dict[str, Any] = _create_base_hook_input(tool_use_context, "")
+    payload.update(hook_input)
+    payload["hook_event_name"] = event
+
+    results = await asyncio.gather(
+        *(_run_single_hook(handler, dict(payload)) for handler in handlers),
+        return_exceptions=True,
+    )
+    return [r for r in results if isinstance(r, dict) and r]
+
+
+async def execute_session_start_hooks(
+    source: str = "startup",
+    session_id: str = "",
+    model: str = "",
+    agent_type: str = "",
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """SessionStart hooks (hooks.ts:3876)."""
+    return await _run_simple_event_hooks(
+        "SessionStart",
+        {"source": source, "model": model, "agent_type": agent_type},
+        tool_use_context,
+    )
+
+
+async def execute_session_end_hooks(
+    reason: str = "exit",
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """SessionEnd hooks (hooks.ts:4113)."""
+    return await _run_simple_event_hooks(
+        "SessionEnd", {"reason": reason}, tool_use_context
+    )
+
+
+async def execute_user_prompt_submit_hooks(
+    prompt: str,
+    tool_use_context: Any = None,
+) -> list[dict[str, Any]]:
+    """UserPromptSubmit hooks (hooks.ts:3841)."""
+    return await _run_simple_event_hooks(
+        "UserPromptSubmit", {"prompt": prompt}, tool_use_context
+    )
+
+
 async def execute_task_completed_hooks(
     task_id: str = "",
     subject: str = "",
