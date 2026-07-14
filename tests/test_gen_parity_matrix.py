@@ -18,7 +18,7 @@ def run_matrix(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_generator_extracts_cli_and_tool_features(tmp_path: Path) -> None:
+def test_generator_extracts_all_four_dimensions(tmp_path: Path) -> None:
     matrix = tmp_path / "parity-matrix.md"
 
     proc = run_matrix("--output", str(matrix))
@@ -28,10 +28,16 @@ def test_generator_extracts_cli_and_tool_features(tmp_path: Path) -> None:
     assert "`cli.--print`" in content
     assert "`cli.command.mcp`" in content
     assert "`tool.BashTool`" in content
+    # Hook events come from the reference HOOK_EVENTS list, settings keys from
+    # the tracked behavior-gating set; a regression in either extractor drops
+    # the dimension silently otherwise.
+    assert "`hook.PreCompact`" in content
+    assert "`settings.permissions.ask`" in content
     assert "implemented-unverified" in content
     assert "| `cli.--continue` | `aligned` | `session.continue_basic` | `P1` |" in content
     assert "| `cli.--resume` | `aligned` | `session.resume_basic` | `P1` |" in content
     assert "| `cli.--mcp-config` | `aligned` | `mcp.stdio_tool_call` | `P1` |" in content
+    assert "| `hook.Stop` | `aligned` | `hooks.stop_hook` | `P1` |" in content
     # A flag with no golden yet still reports as unverified.
     assert "| `cli.--debug` | `implemented-unverified` | `-` | `P1` |" in content
 

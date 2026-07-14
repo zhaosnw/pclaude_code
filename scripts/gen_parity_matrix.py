@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Generate and validate the recovered TS reference parity matrix.
 
-The initial matrix intentionally covers only CLI options/subcommands and the
-top-level tool catalog. Every generated row starts as
-``implemented-unverified``; an item becomes ``aligned`` only after a golden
-case is recorded from the TS reference and named in the evidence column.
+The matrix covers four dimensions extracted from the recovered TS sources:
+CLI options/subcommands, the tool catalog, hook events, and settings
+permission keys. Every generated row starts as ``implemented-unverified``; an
+item becomes ``aligned`` only after a golden case is recorded from the TS
+reference and named in the evidence column.
 """
 
 from __future__ import annotations
@@ -37,7 +38,44 @@ ALIGNED_EVIDENCE = {
     "cli.--resume": "session.resume_basic",
     "cli.--permission-mode": "permission.mode_bypass",
     "cli.--mcp-config": "mcp.stdio_tool_call",
+    "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
+    "hook.PostToolUse": "hooks.posttool_output",
+    "hook.Stop": "hooks.stop_hook",
+    "settings.permissions.allow": "permission.settings_allow_bash",
+    "settings.permissions.deny": "permission.settings_deny_read",
 }
+
+# Hook events the reference can emit (coreTypes.ts HOOK_EVENTS). Tool-lifecycle
+# and session-lifecycle events are the ones a headless code agent must honor.
+P1_HOOK_EVENTS = {
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "Stop",
+    "SubagentStop",
+    "UserPromptSubmit",
+    "SessionStart",
+    "SessionEnd",
+    "PreCompact",
+    "PostCompact",
+}
+HOOK_EVENTS_RE = re.compile(
+    r"export const HOOK_EVENTS = \[(?P<body>.*?)\]", re.DOTALL
+)
+QUOTED_RE = re.compile(r"'([A-Za-z]+)'")
+
+# Settings keys that gate agent behavior. The recovered settings schema is
+# large and mostly telemetry/UI; these are the ones alignment cases can prove.
+SETTINGS_KEYS = [
+    ("settings.permissions.allow", "P1"),
+    ("settings.permissions.deny", "P1"),
+    ("settings.permissions.ask", "P1"),
+    ("settings.permissions.defaultMode", "P1"),
+    ("settings.permissions.additionalDirectories", "P2"),
+    ("settings.hooks", "P1"),
+    ("settings.env", "P2"),
+    ("settings.model", "P2"),
+]
 
 
 def _source_text(path: Path) -> str:
@@ -95,8 +133,35 @@ def extract_tool_features() -> list[tuple[str, str]]:
     ]
 
 
+def extract_hook_features() -> list[tuple[str, str]]:
+    """Return hook events declared in the recovered SDK core types."""
+    text = _source_text(REFERENCE_ROOT / "entrypoints" / "sdk" / "coreTypes.ts")
+    match = HOOK_EVENTS_RE.search(text)
+    if match is None:
+        raise ValueError("TS reference no longer declares HOOK_EVENTS")
+    events = QUOTED_RE.findall(match.group("body"))
+    if not events:
+        raise ValueError("TS reference HOOK_EVENTS list is empty")
+    return [
+        (f"hook.{event}", "P1" if event in P1_HOOK_EVENTS else "P2")
+        for event in sorted(set(events))
+    ]
+
+
+def extract_settings_features() -> list[tuple[str, str]]:
+    """Return the behavior-gating settings keys tracked for alignment."""
+    return list(SETTINGS_KEYS)
+
+
 def render_matrix() -> str:
-    rows = sorted({*extract_cli_features(), *extract_tool_features()})
+    rows = sorted(
+        {
+            *extract_cli_features(),
+            *extract_tool_features(),
+            *extract_hook_features(),
+            *extract_settings_features(),
+        }
+    )
     lines = [
         "# Parity Matrix",
         "",
