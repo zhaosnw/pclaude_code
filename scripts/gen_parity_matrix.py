@@ -35,6 +35,7 @@ TABLE_ROW_RE = re.compile(
 ALIGNED_EVIDENCE = {
     "cli.--continue": "session.continue_basic",
     "cli.--resume": "session.resume_basic",
+    "cli.--permission-mode": "permission.mode_bypass",
 }
 
 
