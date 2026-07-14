@@ -32,10 +32,24 @@ def load_fixture(path: str | Path) -> dict[str, Any]:
 
 def fixture_call_model(
     fixture: dict[str, Any],
+    cursor_path: str | None = None,
 ) -> Callable[..., AsyncGenerator[Any, None]]:
-    """Return a stateful ``call_model`` that yields the next response per call."""
+    """Return a stateful ``call_model`` that yields the next response per call.
+
+    ``cursor_path`` persists the position across processes. A multi-invocation
+    case (``--resume``) runs one hare process per turn, while the TS reference
+    replays against a single mock server whose response stream keeps advancing.
+    Without a shared cursor the second hare process restarts at response 0 and
+    replays the first turn, which is not what the reference does.
+    """
     responses = list(fixture["responses"])
     index = {"i": 0}
+    if cursor_path:
+        try:
+            with open(cursor_path, encoding="utf-8") as handle:
+                index["i"] = int(handle.read().strip() or 0)
+        except (OSError, ValueError):
+            index["i"] = 0
 
     def call_model(*_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         async def _gen() -> AsyncGenerator[Any, None]:
@@ -46,6 +60,12 @@ def fixture_call_model(
                     f"only has {len(responses)} responses"
                 )
             index["i"] = i + 1
+            if cursor_path:
+                try:
+                    with open(cursor_path, "w", encoding="utf-8") as handle:
+                        handle.write(str(index["i"]))
+                except OSError:
+                    pass
             r = responses[i]
             usage = r.get("usage", {"input_tokens": 0, "output_tokens": 0})
             stop_reason = r.get("stop_reason", "end_turn")

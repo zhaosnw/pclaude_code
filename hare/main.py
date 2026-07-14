@@ -450,10 +450,18 @@ async def _resume_existing_session(
     from hare.tool import get_empty_tool_permission_context
     from hare.tools import get_tools
     from hare.commands import get_commands
+    from hare.tools_impl.FileEditTool.file_edit_tool import (
+        seed_read_state_from_messages,
+    )
 
     permission_context = permission_context or get_empty_tool_permission_context()
     tools = get_tools(permission_context)
     commands = await get_commands(os.getcwd())
+
+    # Edit refuses to touch a file it has no read record for, and that record
+    # lives in process memory. Without replaying the transcript's reads, every
+    # edit in a resumed session failed with "File has not been read yet."
+    seed_read_state_from_messages(loaded_messages, os.getcwd())
 
     engine = QueryEngine(
         QueryEngineConfig(

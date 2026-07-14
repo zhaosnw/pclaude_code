@@ -1,0 +1,20 @@
+{
+  "case_id": "session.resume_edit_after_read",
+  "priority": "P1",
+  "invocations": [
+    {
+      "argv": ["-p", "read the file", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+      "ts_argv": ["-p", "read the file", "--output-format", "json", "--dangerously-skip-permissions"],
+      "expected": {"stdout_kind": "json"}
+    },
+    {
+      "argv": ["-p", "now edit it", "--resume", "${session_id[0]}", "--output-format", "json", "--permission-mode", "bypassPermissions"],
+      "ts_argv": ["-p", "now edit it", "--resume", "${session_id[0]}", "--output-format", "json", "--dangerously-skip-permissions"],
+      "expected": {"stdout_kind": "json"}
+    }
+  ],
+  "fixture": "hare/alignment/fixtures/session_resume_edit.json",
+  "fs": {"seed": ["edit_src.txt"]},
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "session_lifecycle", "check_files": true, "golden_source": "ts-reference"}
+}

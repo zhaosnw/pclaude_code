@@ -4,14 +4,33 @@
     {
       "stop_reason": "tool_use",
       "content": [
-        {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "echo hooked", "description": "echo a marker"}}
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "Bash",
+          "input": {
+            "command": "touch hook_tool_ran.txt",
+            "description": "create a marker file"
+          }
+        }
       ],
-      "usage": {"input_tokens": 40, "output_tokens": 12}
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 12
+      }
     },
     {
       "stop_reason": "end_turn",
-      "content": [{"type": "text", "text": "The command was blocked."}],
-      "usage": {"input_tokens": 85, "output_tokens": 7}
+      "content": [
+        {
+          "type": "text",
+          "text": "The command was blocked."
+        }
+      ],
+      "usage": {
+        "input_tokens": 85,
+        "output_tokens": 7
+      }
     }
   ]
 }

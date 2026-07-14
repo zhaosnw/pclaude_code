@@ -1414,6 +1414,22 @@ async def _check_rule_based_permissions(
     Returns None when no rule matches (passthrough), or a dict with
     behavior ("allow", "deny", "ask") and optional message.
     """
+    # Content-level rules (e.g. Bash(touch *)) are matched by the tool's own
+    # check_permissions, exactly as in the main pipeline; the rule-based helper
+    # below only sees tool-level rules and would answer 'ask' for a content
+    # deny, sending the call back through can_use_tool and recording a denial
+    # the reference does not report.
+    try:
+        tool_result = await tool.check_permissions(input, tool_use_context)
+        tool_behavior = getattr(tool_result, "behavior", None)
+        if tool_behavior in ("deny", "ask"):
+            return {
+                "behavior": tool_behavior,
+                "message": getattr(tool_result, "message", ""),
+            }
+    except Exception:
+        pass
+
     try:
         from hare.utils.permissions.permissions import check_rule_based_permissions as _check
 

@@ -58,9 +58,15 @@ def production_deps() -> QueryDeps:
     if fixture_path:
         # Test-only deterministic backend. Never set in production. Lets the
         # CLI subprocess (python -m hare) replay a fixture instead of the API.
+        # HARE_MODEL_FIXTURE_CURSOR keeps the replay position across processes
+        # so a multi-invocation case advances the stream once, like the TS
+        # reference's shared mock server does.
         from hare.testing.fake_model import fixture_call_model, load_fixture
 
-        call_model = fixture_call_model(load_fixture(fixture_path))
+        call_model = fixture_call_model(
+            load_fixture(fixture_path),
+            cursor_path=os.environ.get("HARE_MODEL_FIXTURE_CURSOR"),
+        )
 
     return QueryDeps(
         call_model=call_model,

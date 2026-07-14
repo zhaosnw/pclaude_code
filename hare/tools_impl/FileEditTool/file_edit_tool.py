@@ -228,6 +228,45 @@ def mark_file_read(
     }
 
 
+def seed_read_state_from_messages(messages: list[Any], cwd: str) -> int:
+    """Replay a transcript's file reads/writes into the read-state gate.
+
+    Port of print.ts:1147 (``extractReadFilesFromMessages``): a resumed session
+    starts with an empty cache, so Edit rejected every file the previous turns
+    had already read with "File has not been read yet." Returns how many paths
+    were seeded.
+
+    Content comes from the current file on disk rather than the transcript, so
+    the staleness check below still fires if the file changed between sessions.
+    """
+    seeded = 0
+    for message in messages:
+        if getattr(message, "type", None) != "assistant":
+            continue
+        inner = getattr(message, "message", None)
+        content = getattr(inner, "content", None) if inner is not None else None
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict) or block.get("type") != "tool_use":
+                continue
+            if block.get("name") not in ("Read", "Write", "Edit", "MultiEdit"):
+                continue
+            raw_path = (block.get("input") or {}).get("file_path")
+            if not isinstance(raw_path, str) or not raw_path:
+                continue
+            path = raw_path if os.path.isabs(raw_path) else os.path.join(cwd, raw_path)
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, encoding="utf-8", errors="replace") as handle:
+                    mark_file_read(path, content=handle.read())
+            except OSError:
+                continue
+            seeded += 1
+    return seeded
+
+
 def _find_similar_file(path: str) -> str | None:
     """Find a file with similar name in the same directory."""
     dir_path = os.path.dirname(path)

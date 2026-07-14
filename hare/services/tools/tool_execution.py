@@ -146,25 +146,57 @@ async def run_tool_use(
     except Exception:  # noqa: BLE001 - a broken hook must not kill the turn
         hook_permission = None
 
-    if hook_permission is not None and getattr(
-        hook_permission, "behavior", "allow"
-    ) in ("deny", "ask"):
-        reason = getattr(hook_permission, "message", "Blocked by hook")
-        yield MessageUpdateLazy(
-            message=create_user_message(
-                content=[
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": tool_use_id,
-                        "content": reason,
-                        "is_error": True,
-                    }
-                ],
-                tool_use_result=reason,
-                source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
-            )
+    # A hook decision does not simply win: hook 'allow' still loses to a
+    # settings deny/ask rule (resolveHookPermissionDecision). This resolver
+    # already encoded that and had no caller.
+    if hook_permission is not None:
+        from hare.services.tools.tool_hooks import resolve_hook_permission_decision
+
+        resolved = await resolve_hook_permission_decision(
+            hook_permission,
+            tool,
+            tool_input,
+            tool_use_context,
+            can_use_tool,
+            assistant_message,
+            tool_use_id,
         )
-        return
+        decision = resolved.get("decision") or {}
+        tool_input = resolved.get("input", tool_input)
+        # Every result on this path is a plain dict; getattr() would silently
+        # read the "allow" default and let a denied tool run.
+        behavior = (
+            decision.get("behavior", "allow")
+            if isinstance(decision, dict)
+            else getattr(decision, "behavior", "allow")
+        )
+        if behavior in ("deny", "ask"):
+            reason = (
+                decision.get("message", "Blocked by hook")
+                if isinstance(decision, dict)
+                else getattr(decision, "message", "Blocked by hook")
+            )
+            yield MessageUpdateLazy(
+                message=create_user_message(
+                    content=[
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use_id,
+                            "content": reason,
+                            "is_error": True,
+                        }
+                    ],
+                    tool_use_result=reason,
+                    source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
+                )
+            )
+            return
+        # 'passthrough' means the hook made no decision — fall through to the
+        # normal permission check below.
+        if behavior == "allow":
+            hook_permission = decision
+        else:
+            hook_permission = None
 
     # Permission check
     try:

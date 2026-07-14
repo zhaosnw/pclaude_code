@@ -128,9 +128,11 @@ def test_case_matches_golden(case_path: Path):
 
     if case.get("policy", {}).get("match") == "session_lifecycle":
         def lifecycle(records):
+            # argv is an input echo, not observed behavior, and a case with
+            # ts_argv (flags that differ between hare and the reference) can
+            # never match on it.
             return [
                 {
-                    "argv": record["argv"],
                     "status": record["status"],
                     "state": record["state"],
                     "session_id": record["session_id"],

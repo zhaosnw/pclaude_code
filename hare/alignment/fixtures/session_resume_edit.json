@@ -1,0 +1,29 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "Read", "input": {"file_path": "edit_src.txt"}}
+      ],
+      "usage": {"input_tokens": 40, "output_tokens": 10}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "I read the file."}],
+      "usage": {"input_tokens": 70, "output_tokens": 6}
+    },
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": {"file_path": "edit_src.txt", "old_string": "world", "new_string": "resumed"}}
+      ],
+      "usage": {"input_tokens": 90, "output_tokens": 12}
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [{"type": "text", "text": "I edited the file."}],
+      "usage": {"input_tokens": 120, "output_tokens": 6}
+    }
+  ]
+}

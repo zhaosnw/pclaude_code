@@ -181,6 +181,15 @@ def run_case(case: dict[str, Any], *, base_url: str | None = None) -> dict[str, 
     expected = case.get("expected", {})
     sandbox = _make_sandbox(case)
     env = _prepare_env(case, base_url=base_url, sandbox_root=sandbox)
+    # One hare process per invocation, but the fixture is one response stream:
+    # the TS reference replays every invocation against a single mock server,
+    # so hare must advance the same cursor instead of restarting at response 0.
+    if "HARE_MODEL_FIXTURE" in env:
+        # Inside .hare/ so the file-effect snapshot (which skips runtime state
+        # dirs) doesn't report the cursor as a produced file.
+        cursor = sandbox / ".hare" / "fixture-cursor"
+        cursor.parent.mkdir(parents=True, exist_ok=True)
+        env["HARE_MODEL_FIXTURE_CURSOR"] = str(cursor)
     invocation_results: list[dict[str, Any]] = []
     session_ids: list[str | None] = []
 

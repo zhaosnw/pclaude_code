@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "deny": ["Bash(echo *)"]
+    "deny": ["Bash(touch *)"]
   },
   "hooks": {
     "PreToolUse": [
