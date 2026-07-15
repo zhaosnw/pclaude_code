@@ -48,7 +48,7 @@ ALIGNED_EVIDENCE = {
     "cli.--settings": "cli.settings_flag",
     "hook.PostToolUseFailure": "hooks.posttool_failure",
     "settings.hooks": "hooks.lifecycle_events",
-    "tool.AgentTool": "subagent.task_dispatch",
+    "tool.AgentTool": "subagent.task_dispatch_sync",
     "settings.permissions.allow": "permission.settings_allow_bash",
     "settings.permissions.deny": "permission.settings_deny_read",
     "behavior.print_mode_no_autocompact": "compact.auto_threshold",
@@ -57,7 +57,7 @@ ALIGNED_EVIDENCE = {
     "behavior.permission_denials_reporting": "permission.perm_deny_denials",
     "behavior.resume_read_state": "session.resume_edit_after_read",
     "behavior.max_turns": "limits.max_turns",
-    "behavior.subagent_dispatch": "subagent.task_dispatch",
+    "behavior.subagent_dispatch": "subagent.task_dispatch_sync",
     "behavior.mcp_stdio_lifecycle": "mcp.stdio_tool_call",
 }
 # compact.auto_threshold passes but has no matrix row of its own: auto-compact
