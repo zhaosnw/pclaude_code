@@ -16,7 +16,7 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional, cast
 from uuid import uuid4
 
 from hare.bootstrap.state import get_session_id, is_session_persistence_disabled
@@ -423,6 +423,72 @@ class QueryEngine:
                     "uuid": str(uuid4()),
                 }
                 return
+
+        # Background subagents (run_in_background) finish after the parent's
+        # turn ends. The release then re-enters the main loop with a
+        # <task-notification> message so the parent can react to the result
+        # (AgentTool.tsx). Drain completions and run one more query per batch,
+        # injecting the notification as a system message. The notification is
+        # not a user turn, so turn_count is not incremented.
+        from hare.tools_impl.AgentTool import async_agent_tasks
+
+        # Only the top-level (non-subagent) loop drains background completions.
+        # A subagent's own engine must never wait on the registry — it would
+        # block on tasks its parent owns, deadlocking the parent that is waiting
+        # for it.
+        is_subagent = getattr(config, "agent_id", None) is not None
+
+        while not is_subagent and async_agent_tasks.has_pending():
+            completion = await async_agent_tasks.wait_for_next_completion()
+            if completion is None:
+                break
+            batch = [completion, *async_agent_tasks.drain_completions()]
+            for done in batch:
+                notice = async_agent_tasks.build_task_notification(done)
+                notice_msg = create_user_message(content=notice)
+                self._mutable_messages.append(notice_msg)
+                self._persist_message(notice_msg, persist=persist_session, cwd=cwd)
+            reentry_params = QueryParams(
+                messages=list(self._mutable_messages),
+                system_prompt=system_prompt,
+                user_context=user_context_override or {},
+                system_context=system_context_override or {},
+                can_use_tool=tracked_can_use_tool,
+                tool_use_context=tool_use_context,
+                fallback_model=config.fallback_model,
+                query_source=query_source_override or "sdk",
+                max_turns=max_turns,
+                task_budget=config.task_budget,
+            )
+            async for message in query(reentry_params):
+                msg_type = getattr(message, "type", None)
+                if msg_type == "assistant":
+                    assistant_msg = cast(Message, message)
+                    self._mutable_messages.append(assistant_msg)
+                    self._persist_message(
+                        assistant_msg, persist=persist_session, cwd=cwd
+                    )
+                    yield self._normalize_message(assistant_msg)
+                elif msg_type == "stream_event":
+                    event = getattr(message, "event", {})
+                    event_type = event.get("type", "")
+                    if event_type == "message_start":
+                        current_message_usage = empty_usage()
+                        current_message_usage = update_usage(
+                            current_message_usage,
+                            event.get("message", {}).get("usage"),
+                        )
+                    elif event_type == "message_delta":
+                        current_message_usage = update_usage(
+                            current_message_usage, event.get("usage")
+                        )
+                        delta = event.get("delta", {})
+                        if delta.get("stop_reason"):
+                            last_stop_reason = delta["stop_reason"]
+                    elif event_type == "message_stop":
+                        self._total_usage = accumulate_usage(
+                            self._total_usage, current_message_usage
+                        )
 
         # Extract text result from last assistant message
         text_result = ""

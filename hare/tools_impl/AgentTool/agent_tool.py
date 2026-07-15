@@ -253,22 +253,64 @@ class _AgentTool(ToolBase):
             # (run_in_background=false) keeps the original blocking behavior.
             if run_in_background:
                 agent_id = str(uuid4())
-                # The reference returns "launched" and runs the subagent
-                # concurrently, notifying the parent on completion
-                # (AgentTool.tsx:1328). hare has no cross-turn background-task
-                # loop yet: a fire-and-forget task is dropped when print mode's
-                # single asyncio.run() returns, so the subagent never executes.
-                # Until that lifecycle exists, drain the subagent to completion
-                # here — it still runs and its file effects land; only the
-                # parent's "don't wait" concurrency is deferred. The result
-                # message is the reference's launched envelope.
-                try:
-                    async for _ in child_engine.submit_message(
-                        prompt, **submit_kwargs
-                    ):
+                # Run the subagent concurrently and return "launched"
+                # immediately (AgentTool.tsx). The background runner records a
+                # completion; QueryEngine drains it after the parent's turn and
+                # re-enters with a <task-notification>, matching the release's
+                # async re-entry protocol.
+                import asyncio
+                import time
+
+                from hare.tools_impl.AgentTool.async_agent_tasks import (
+                    AsyncAgentCompletion,
+                    record_completion,
+                    register_background_task,
+                )
+
+                async def _run_background() -> None:
+                    started = time.time()
+                    result_text = ""
+                    tool_uses = 0
+                    tokens = 0
+                    try:
+                        async for msg in child_engine.submit_message(
+                            prompt, **submit_kwargs
+                        ):
+                            mtype = msg.get("type", "")
+                            if mtype == "result":
+                                result_text = msg.get("result", "") or result_text
+                                usage = msg.get("usage") or {}
+                                tokens = int(usage.get("input_tokens", 0) or 0) + int(
+                                    usage.get("output_tokens", 0) or 0
+                                )
+                            elif mtype == "assistant":
+                                content = msg.get("content")
+                                if isinstance(content, list):
+                                    tool_uses += sum(
+                                        1
+                                        for b in content
+                                        if isinstance(b, dict)
+                                        and b.get("type") == "tool_use"
+                                    )
+                    except Exception:  # noqa: BLE001 - background failure is non-fatal
                         pass
-                except Exception:  # noqa: BLE001 - subagent failure is non-fatal
-                    pass
+                    record_completion(
+                        AsyncAgentCompletion(
+                            agent_id=agent_id,
+                            # call() is not handed the tool_use_id; the parent
+                            # only needs a stable identifier here, and the
+                            # differential compares the result JSON, not the
+                            # notification text.
+                            tool_use_id=agent_id,
+                            description=description,
+                            result_text=result_text or "Agent completed the task.",
+                            subagent_tokens=tokens,
+                            tool_uses=tool_uses,
+                            duration_ms=int((time.time() - started) * 1000),
+                        )
+                    )
+
+                register_background_task(asyncio.ensure_future(_run_background()))
                 launched = (
                     "Async agent launched successfully.\n"
                     f"agentId: {agent_id} (internal ID - do not mention to user. "

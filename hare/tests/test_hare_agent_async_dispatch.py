@@ -20,6 +20,9 @@ from hare.tool import ToolUseContext, ToolUseContextOptions
 
 def test_async_dispatch_returns_launched_without_blocking() -> None:
     """run_in_background=true returns an 'Async agent launched' result."""
+    from hare.tools_impl.AgentTool import async_agent_tasks
+
+    async_agent_tasks.reset()
     tool = _AgentTool()
     ctx = ToolUseContext(options=ToolUseContextOptions())
 
@@ -41,6 +44,9 @@ def test_async_dispatch_returns_launched_without_blocking() -> None:
     assert "agentId:" in str(result.data)
     # The parent must NOT receive the subagent's final text synchronously.
     assert "background" in str(result.data)
+    # A background task was registered for QueryEngine to drain later.
+    assert async_agent_tasks.has_pending()
+    async_agent_tasks.reset()
 
 
 def test_sync_dispatch_still_blocks_and_returns_result() -> None:
