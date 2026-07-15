@@ -1,0 +1,109 @@
+{
+  "kind": "content-matched",
+  "responses": [
+    {
+      "match": {
+        "no_tool_result": true,
+        "user_contains": "dispatch"
+      },
+      "once": true,
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "Task",
+          "input": {
+            "description": "marker",
+            "prompt": "create sub_async_ran.txt",
+            "subagent_type": "general-purpose",
+            "run_in_background": true
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 50,
+        "output_tokens": 15
+      }
+    },
+    {
+      "match": {
+        "no_tool_result": true,
+        "user_contains": "create sub_async_ran"
+      },
+      "once": true,
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "sub_1",
+          "name": "Bash",
+          "input": {
+            "command": "touch sub_async_ran.txt",
+            "description": "marker"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 60,
+        "output_tokens": 12
+      }
+    },
+    {
+      "match": {
+        "last_tool_use": "Bash"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Subagent done."
+        }
+      ],
+      "usage": {
+        "input_tokens": 80,
+        "output_tokens": 8
+      }
+    },
+    {
+      "match": {
+        "last_tool_use": "Agent"
+      },
+      "once": true,
+      "content": [
+        {
+          "type": "text",
+          "text": "Launched in background."
+        }
+      ],
+      "usage": {
+        "input_tokens": 110,
+        "output_tokens": 8
+      }
+    },
+    {
+      "match": {
+        "user_contains": "NOTIFICATION"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The background agent finished."
+        }
+      ],
+      "usage": {
+        "input_tokens": 120,
+        "output_tokens": 8
+      }
+    },
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "done"
+        }
+      ],
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 2
+      }
+    }
+  ]
+}

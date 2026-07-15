@@ -1,0 +1,32 @@
+{
+  "case_id": "subagent.async_dispatch",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "dispatch a background agent",
+      "--output-format",
+      "json",
+      "--permission-mode",
+      "bypassPermissions"
+    ],
+    "ts_argv": [
+      "-p",
+      "dispatch a background agent",
+      "--output-format",
+      "json",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "fixture": "hare/alignment/fixtures/subagent_async_matched.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "match": "json_structural",
+    "check_files": true,
+    "golden_source": "ts-reference"
+  },
+  "known_divergence": "Async subagent lifecycle is aligned end-to-end: the parent gets the launched envelope, the subagent runs in the background (its file effect lands), and on completion the main loop re-enters with a <task-notification> and the parent's final result matches ('The background agent finished.'). Only num_turns differs (hare 2 vs reference 1): the release does not count the async launch tool_result as a turn, while hare counts every tool_result as a user turn. Fixing that cleanly needs a turn-counting change that touches all cases, so it is deferred rather than patched with a launched-message content heuristic."
+}
