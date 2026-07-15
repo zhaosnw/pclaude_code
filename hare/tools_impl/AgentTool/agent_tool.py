@@ -253,19 +253,22 @@ class _AgentTool(ToolBase):
             # (run_in_background=false) keeps the original blocking behavior.
             if run_in_background:
                 agent_id = str(uuid4())
-
-                async def _drain() -> None:
-                    try:
-                        async for _ in child_engine.submit_message(
-                            prompt, **submit_kwargs
-                        ):
-                            pass
-                    except Exception:  # noqa: BLE001 - background, must not raise
+                # The reference returns "launched" and runs the subagent
+                # concurrently, notifying the parent on completion
+                # (AgentTool.tsx:1328). hare has no cross-turn background-task
+                # loop yet: a fire-and-forget task is dropped when print mode's
+                # single asyncio.run() returns, so the subagent never executes.
+                # Until that lifecycle exists, drain the subagent to completion
+                # here — it still runs and its file effects land; only the
+                # parent's "don't wait" concurrency is deferred. The result
+                # message is the reference's launched envelope.
+                try:
+                    async for _ in child_engine.submit_message(
+                        prompt, **submit_kwargs
+                    ):
                         pass
-
-                import asyncio
-
-                asyncio.ensure_future(_drain())
+                except Exception:  # noqa: BLE001 - subagent failure is non-fatal
+                    pass
                 launched = (
                     "Async agent launched successfully.\n"
                     f"agentId: {agent_id} (internal ID - do not mention to user. "

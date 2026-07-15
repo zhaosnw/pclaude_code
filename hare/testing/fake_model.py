@@ -21,9 +21,10 @@ from typing import Any, AsyncGenerator, Callable
 
 def load_fixture(path: str | Path) -> dict[str, Any]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if data.get("kind") not in {"scripted", "replay"}:
+    if data.get("kind") not in {"scripted", "replay", "content-matched"}:
         raise ValueError(
-            f"fixture kind must be scripted|replay, got {data.get('kind')!r}"
+            "fixture kind must be scripted|replay|content-matched, got "
+            f"{data.get('kind')!r}"
         )
     if not isinstance(data.get("responses"), list):
         raise ValueError("fixture must have a 'responses' list")
@@ -66,16 +67,55 @@ def fixture_call_model(
         except OSError:
             pass
 
+    content_matched = fixture.get("kind") == "content-matched"
+
+    def _select_by_content(payload: Any) -> dict[str, Any]:
+        # Match the request against the fixture the way the mock server does,
+        # so a concurrent/async flow (parent + subagent drawing from one
+        # fixture) is deterministic instead of order-dependent. Consumed
+        # "once" responses are tracked next to the shared cursor file so a
+        # child engine and its parent agree on what has been served.
+        import os
+
+        from scripts.fixture_matching import select_response
+
+        consumed: set[int] = set()
+        consumed_path = f"{cursor_path}.consumed" if cursor_path else None
+        if consumed_path and os.path.exists(consumed_path):
+            try:
+                with open(consumed_path, encoding="utf-8") as handle:
+                    consumed = {int(x) for x in handle.read().split() if x.strip()}
+            except (OSError, ValueError):
+                consumed = set()
+        selection = select_response(
+            responses, payload if isinstance(payload, dict) else {}, consumed
+        )
+        if selection is None:
+            raise AssertionError("no fixture response matched the request")
+        idx, resp = selection
+        if resp.get("once") and consumed_path:
+            consumed.add(idx)
+            try:
+                with open(consumed_path, "w", encoding="utf-8") as handle:
+                    handle.write(" ".join(str(x) for x in sorted(consumed)))
+            except OSError:
+                pass
+        return resp
+
     def call_model(*_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         async def _gen() -> AsyncGenerator[Any, None]:
-            i = _read_index()
-            if i >= len(responses):
-                raise AssertionError(
-                    f"fixture exhausted: model called {i + 1} times but fixture "
-                    f"only has {len(responses)} responses"
-                )
-            _write_index(i + 1)
-            r = responses[i]
+            if content_matched:
+                payload = _args[0] if _args else _kwargs.get("payload", {})
+                r = _select_by_content(payload)
+            else:
+                i = _read_index()
+                if i >= len(responses):
+                    raise AssertionError(
+                        f"fixture exhausted: model called {i + 1} times but "
+                        f"fixture only has {len(responses)} responses"
+                    )
+                _write_index(i + 1)
+                r = responses[i]
             usage = r.get("usage", {"input_tokens": 0, "output_tokens": 0})
             stop_reason = r.get("stop_reason", "end_turn")
             content = r.get("content", [{"type": "text", "text": ""}])

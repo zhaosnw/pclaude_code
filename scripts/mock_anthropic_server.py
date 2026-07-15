@@ -126,21 +126,49 @@ def stream_response(resp: dict[str, Any]) -> bytes:
 def make_server(fixture_path: str | Path, port: int = 0) -> ThreadingHTTPServer:
     fixture = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
     responses = list(fixture["responses"])
+    content_matched = fixture.get("kind") == "content-matched"
     cursor = {"i": 0}
+    consumed: set[int] = set()
+    import threading as _threading
+
+    _lock = _threading.Lock()
+
+    if content_matched:
+        import sys as _sys
+
+        _here = str(Path(__file__).resolve().parent)
+        if _here not in _sys.path:
+            _sys.path.insert(0, _here)
+        from fixture_matching import select_response
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
         def do_POST(self) -> None:  # noqa: N802
             length = int(self.headers.get("content-length", 0))
-            if length:
-                self.rfile.read(length)
-            i = cursor["i"]
-            if i >= len(responses):
-                self.send_error(500, "fixture exhausted")
-                return
-            cursor["i"] = i + 1
-            payload = stream_response(responses[i])
+            body = self.rfile.read(length) if length else b""
+
+            with _lock:
+                if content_matched:
+                    try:
+                        request = json.loads(body or b"{}")
+                    except json.JSONDecodeError:
+                        request = {}
+                    selection = select_response(responses, request, consumed)
+                    if selection is None:
+                        self.send_error(500, "no fixture response matched request")
+                        return
+                    idx, resp = selection
+                    if resp.get("once"):
+                        consumed.add(idx)
+                else:
+                    i = cursor["i"]
+                    if i >= len(responses):
+                        self.send_error(500, "fixture exhausted")
+                        return
+                    cursor["i"] = i + 1
+                    resp = responses[i]
+            payload = stream_response(resp)
             self.send_response(200)
             self.send_header("content-type", "text/event-stream; charset=utf-8")
             self.send_header("cache-control", "no-cache")
