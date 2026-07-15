@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "alpha\nbeta\ngamma\n"
+  "stdout": "alpha\nbeta\ngamma\n",
+  "stderr": ""
 }

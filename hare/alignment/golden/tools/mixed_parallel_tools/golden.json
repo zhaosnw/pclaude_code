@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Read a.txt and ran echo hi.\n"
+  "stdout": "Read a.txt and ran echo hi.\n",
+  "stderr": ""
 }

@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "The command ran successfully.\n"
+  "stdout": "The command ran successfully.\n",
+  "stderr": ""
 }

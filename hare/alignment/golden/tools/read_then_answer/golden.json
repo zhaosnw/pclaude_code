@@ -5,6 +5,7 @@
     "exit_code": 0
   },
   "stdout": "The project is called Sample Project.\n",
+  "stderr": "",
   "files": [
     {
       "path": "README.md",

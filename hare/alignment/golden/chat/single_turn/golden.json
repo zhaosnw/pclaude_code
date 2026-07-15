@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Hello from fixture.\n"
+  "stdout": "Hello from fixture.\n",
+  "stderr": ""
 }

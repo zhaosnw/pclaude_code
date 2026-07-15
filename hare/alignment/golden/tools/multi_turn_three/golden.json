@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "a.txt has AAA content and b.txt has BBB content.\n"
+  "stdout": "a.txt has AAA content and b.txt has BBB content.\n",
+  "stderr": ""
 }

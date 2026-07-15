@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Found the files.\n"
+  "stdout": "Found the files.\n",
+  "stderr": ""
 }

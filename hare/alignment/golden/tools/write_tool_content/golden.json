@@ -5,6 +5,7 @@
     "exit_code": 0
   },
   "stdout": "Created greet.txt with two lines.\n",
+  "stderr": "",
   "files": [
     {
       "path": "greet.txt",

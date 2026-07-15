@@ -5,6 +5,7 @@
     "exit_code": 0
   },
   "stdout": "Edited.\n",
+  "stderr": "",
   "files": [
     {
       "path": "me.txt",

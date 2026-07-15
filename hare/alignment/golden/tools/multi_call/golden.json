@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Read both files.\n"
+  "stdout": "Read both files.\n",
+  "stderr": ""
 }

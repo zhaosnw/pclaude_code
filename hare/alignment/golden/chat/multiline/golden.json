@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Line one.\n\nLine two.\n- bullet a\n- bullet b\n"
+  "stdout": "Line one.\n\nLine two.\n- bullet a\n- bullet b\n",
+  "stderr": ""
 }

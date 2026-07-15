@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Matched.\n"
+  "stdout": "Matched.\n",
+  "stderr": ""
 }

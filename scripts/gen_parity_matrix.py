@@ -45,13 +45,20 @@ ALIGNED_EVIDENCE = {
     "hook.SessionEnd": "hooks.lifecycle_events",
     "hook.UserPromptSubmit": "hooks.lifecycle_events",
     "hook.SubagentStop": "hooks.lifecycle_events",
-    "hook.PreCompact": "compact.auto_threshold",
-    "hook.PostCompact": "compact.auto_threshold",
+    "cli.--settings": "cli.settings_flag",
     "hook.PostToolUseFailure": "hooks.posttool_failure",
     "settings.hooks": "hooks.lifecycle_events",
     "tool.AgentTool": "subagent.task_dispatch",
     "settings.permissions.allow": "permission.settings_allow_bash",
     "settings.permissions.deny": "permission.settings_deny_read",
+    "behavior.print_mode_no_autocompact": "compact.auto_threshold",
+    "behavior.session_transcript": "session.transcript_write",
+    "behavior.tool_result_error_signal": "hooks.posttool_failure",
+    "behavior.permission_denials_reporting": "permission.perm_deny_denials",
+    "behavior.resume_read_state": "session.resume_edit_after_read",
+    "behavior.max_turns": "limits.max_turns",
+    "behavior.subagent_dispatch": "subagent.task_dispatch",
+    "behavior.mcp_stdio_lifecycle": "mcp.stdio_tool_call",
 }
 # compact.auto_threshold passes but has no matrix row of its own: auto-compact
 # is a runtime behavior, not a CLI flag / tool / hook / settings key. Add a
@@ -68,13 +75,30 @@ P1_HOOK_EVENTS = {
     "UserPromptSubmit",
     "SessionStart",
     "SessionEnd",
-    "PreCompact",
-    "PostCompact",
+    # PreCompact/PostCompact are P2: the released CLI does not auto-compact a
+    # headless print run, so they never fire on the print path this suite
+    # exercises.
 }
 HOOK_EVENTS_RE = re.compile(
     r"export const HOOK_EVENTS = \[(?P<body>.*?)\]", re.DOTALL
 )
 QUOTED_RE = re.compile(r"'([A-Za-z]+)'")
+
+# Runtime behaviors: things a code agent must get right that are not a CLI
+# flag, a tool, a hook, or a settings key. Without this dimension a passing
+# case like compact.auto_threshold has nowhere to be recorded.
+BEHAVIOR_KEYS = [
+    ("behavior.print_mode_no_autocompact", "P1"),
+    ("behavior.session_transcript", "P1"),
+    ("behavior.tool_result_error_signal", "P1"),
+    ("behavior.permission_denials_reporting", "P1"),
+    ("behavior.resume_read_state", "P1"),
+    ("behavior.max_turns", "P1"),
+    ("behavior.subagent_dispatch", "P1"),
+    ("behavior.mcp_stdio_lifecycle", "P1"),
+    ("behavior.micro_compact", "P2"),
+    ("behavior.token_budget", "P2"),
+]
 
 # Settings keys that gate agent behavior. The recovered settings schema is
 # large and mostly telemetry/UI; these are the ones alignment cases can prove.
@@ -165,6 +189,11 @@ def extract_settings_features() -> list[tuple[str, str]]:
     return list(SETTINGS_KEYS)
 
 
+def extract_behavior_features() -> list[tuple[str, str]]:
+    """Return the runtime behaviors tracked for alignment."""
+    return list(BEHAVIOR_KEYS)
+
+
 def render_matrix() -> str:
     rows = sorted(
         {
@@ -172,6 +201,7 @@ def render_matrix() -> str:
             *extract_tool_features(),
             *extract_hook_features(),
             *extract_settings_features(),
+            *extract_behavior_features(),
         }
     )
     lines = [

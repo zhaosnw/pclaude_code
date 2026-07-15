@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Listed.\n"
+  "stdout": "Listed.\n",
+  "stderr": ""
 }

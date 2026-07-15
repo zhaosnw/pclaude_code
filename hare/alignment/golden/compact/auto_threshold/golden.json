@@ -4,19 +4,9 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"duration_ms\":1207,\"duration_api_ms\":13,\"num_turns\":3,\"result\":\"Continued after compaction.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":0.9018899999999999,\"usage\":{\"input_tokens\":150500,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":18,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-4-6\":{\"inputTokens\":300500,\"outputTokens\":26,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.9018899999999999,\"contextWindow\":200000,\"maxOutputTokens\":32000}},\"permission_denials\":[],\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
+  "stdout": "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"api_error_status\":null,\"duration_ms\":1454,\"duration_api_ms\":13,\"ttft_ms\":57,\"ttft_stream_ms\":56,\"time_to_request_ms\":54,\"num_turns\":2,\"result\":\"This is the compaction summary.\",\"stop_reason\":\"end_turn\",\"session_id\":\"<UUID>\",\"total_cost_usd\":1.5004499999999998,\"usage\":{\"input_tokens\":300000,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":18,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{\"claude-opus-4-8[1m]\":{\"inputTokens\":300000,\"outputTokens\":18,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":1.5004499999999998,\"contextWindow\":1000000,\"maxOutputTokens\":64000}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"<UUID>\"}\n",
   "stderr": "",
   "files": [
-    {
-      "path": "fired_PostCompact.txt",
-      "sha256": "05a75182a1c77a475cdf617a5790599a85fca11e12b19759a74179d5c47561e1",
-      "text": "PostCompact\n"
-    },
-    {
-      "path": "fired_PreCompact.txt",
-      "sha256": "7dc8389a2dd2989f488927d229a1218f65c370a2964809883e1e61a9cbd0667d",
-      "text": "PreCompact\n"
-    },
     {
       "path": "fired_SessionEnd.txt",
       "sha256": "cea00bb698b8c762ed1504efac1dbb446fe787f0532ac72a777414369cb823fa",
@@ -26,11 +16,6 @@
       "path": "fired_SessionStart.txt",
       "sha256": "83c1d13ee2b3df495c1864f1290fd046a1ccb23673c028328f5556d4a32436ea",
       "text": "SessionStart\n"
-    },
-    {
-      "path": "fired_SubagentStop.txt",
-      "sha256": "cf272ce39f504584ea375d1f8562b6c238cfd3450fd8aad440561b0559872edd",
-      "text": "SubagentStop\n"
     },
     {
       "path": "fired_UserPromptSubmit.txt",

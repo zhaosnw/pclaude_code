@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "The cache stores recent results. It evicts the oldest entry when full. Would you like me to explain the eviction policy?\n"
+  "stdout": "The cache stores recent results. It evicts the oldest entry when full. Would you like me to explain the eviction policy?\n",
+  "stderr": ""
 }

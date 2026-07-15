@@ -5,6 +5,7 @@
     "exit_code": 0
   },
   "stdout": "Wrote the file.\n",
+  "stderr": "",
   "files": [
     {
       "path": "out.txt",

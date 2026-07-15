@@ -1,0 +1,18 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello from stdin."
+        }
+      ],
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 4
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "case_id": "cli.settings_flag",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "go",
+      "--settings",
+      "custom_settings.json",
+      "--output-format",
+      "json"
+    ],
+    "ts_argv": [
+      "-p",
+      "go",
+      "--settings",
+      "custom_settings.json",
+      "--output-format",
+      "json"
+    ]
+  },
+  "fixture": "hare/alignment/fixtures/settings_flag_deny.json",
+  "fs": {
+    "seed": [
+      {
+        "src": "settings_flag_deny_bash.json",
+        "dst": "custom_settings.json"
+      }
+    ]
+  },
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "json"
+  },
+  "policy": {
+    "match": "json_structural",
+    "check_files": true,
+    "golden_source": "ts-reference"
+  }
+}

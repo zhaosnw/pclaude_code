@@ -5,11 +5,12 @@
     "exit_code": 0
   },
   "stdout": "Edited the file.\n",
+  "stderr": "",
   "files": [
     {
       "path": "edit_src.txt",
-      "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
-      "text": "hello world\n"
+      "sha256": "aadc1955c030f723e9d89ed9d486b4eef5b0d1c6945be0dd6b7b340d42928ec9",
+      "text": "hello there\n"
     }
   ]
 }

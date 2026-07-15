@@ -1,8 +1,9 @@
 {
   "case_id": "session.resume_bad_id",
-  "status": "ok",
+  "status": "error",
   "state": {
-    "exit_code": 0
+    "exit_code": 1
   },
-  "stdout": ""
+  "stdout": "",
+  "stderr": "No conversation found with session ID: <UUID>\n"
 }

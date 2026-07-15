@@ -5,7 +5,7 @@
   "stdout_contains": [
     "usage: hare",
     "--version",
-    "-p PROMPT",
+    "-p [PROMPT]",
     "--permission-mode",
     "--output-format",
     "[prompt ...]"

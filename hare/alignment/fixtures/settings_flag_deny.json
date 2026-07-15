@@ -1,0 +1,36 @@
+{
+  "kind": "scripted",
+  "responses": [
+    {
+      "stop_reason": "tool_use",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_1",
+          "name": "Bash",
+          "input": {
+            "command": "touch flag_ran.txt",
+            "description": "marker"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 12
+      }
+    },
+    {
+      "stop_reason": "end_turn",
+      "content": [
+        {
+          "type": "text",
+          "text": "blocked"
+        }
+      ],
+      "usage": {
+        "input_tokens": 85,
+        "output_tokens": 7
+      }
+    }
+  ]
+}

@@ -4,5 +4,6 @@
   "state": {
     "exit_code": 0
   },
-  "stdout": "Found it.\n"
+  "stdout": "Found it.\n",
+  "stderr": ""
 }

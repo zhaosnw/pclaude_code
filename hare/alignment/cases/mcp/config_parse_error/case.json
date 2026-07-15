@@ -19,6 +19,7 @@
     "stdout_kind": "json"
   },
   "policy": {
+    "match": "json_structural",
     "golden_source": "ts-reference"
   }
 }
