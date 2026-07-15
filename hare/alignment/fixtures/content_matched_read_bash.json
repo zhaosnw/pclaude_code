@@ -1,0 +1,60 @@
+{
+  "kind": "content-matched",
+  "responses": [
+    {
+      "match": {
+        "no_tool_result": true,
+        "user_contains": "inspect"
+      },
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "r1",
+          "name": "Read",
+          "input": {
+            "file_path": "note.txt"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 40,
+        "output_tokens": 10
+      }
+    },
+    {
+      "match": {
+        "last_tool_use": "Read"
+      },
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "b1",
+          "name": "Bash",
+          "input": {
+            "command": "touch inspected.txt",
+            "description": "marker"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 60,
+        "output_tokens": 10
+      }
+    },
+    {
+      "match": {
+        "last_tool_use": "Bash"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Inspected and marked."
+        }
+      ],
+      "usage": {
+        "input_tokens": 80,
+        "output_tokens": 8
+      }
+    }
+  ]
+}
