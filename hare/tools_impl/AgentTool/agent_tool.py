@@ -245,6 +245,39 @@ class _AgentTool(ToolBase):
             if agent_system_prompt:
                 submit_kwargs["system_prompt_override"] = [agent_system_prompt]
 
+            # Async dispatch (AgentTool.tsx:1328): run_in_background runs the
+            # subagent as a background task and returns an "Async agent launched"
+            # result immediately, rather than blocking the parent until the
+            # subagent finishes. The parent is expected to end its turn; the
+            # subagent runs on independently. Synchronous dispatch
+            # (run_in_background=false) keeps the original blocking behavior.
+            if run_in_background:
+                agent_id = str(uuid4())
+
+                async def _drain() -> None:
+                    try:
+                        async for _ in child_engine.submit_message(
+                            prompt, **submit_kwargs
+                        ):
+                            pass
+                    except Exception:  # noqa: BLE001 - background, must not raise
+                        pass
+
+                import asyncio
+
+                asyncio.ensure_future(_drain())
+                launched = (
+                    "Async agent launched successfully.\n"
+                    f"agentId: {agent_id} (internal ID - do not mention to user. "
+                    f"Use SendMessage with to: '{agent_id}' to continue this agent.)\n"
+                    "The agent is working in the background. You will be notified "
+                    "automatically when it completes.\n"
+                    "Briefly tell the user what you launched and end your response. "
+                    "Do not generate any other text — agent results will arrive in "
+                    "a subsequent message."
+                )
+                return ToolResult(data=launched)
+
             result_text = ""
             async for msg in child_engine.submit_message(prompt, **submit_kwargs):
                 msg_type = msg.get("type", "")
