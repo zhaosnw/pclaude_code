@@ -224,6 +224,14 @@ async def auto_compact_if_needed(
     if not is_auto_compact_enabled():
         return {"compactionResult": None, "consecutiveFailures": None}
 
+    # The released CLI does not auto-compact a headless print run. Verified
+    # against 2.1.209: a genuinely 300k-token conversation, with
+    # CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=1, still issues no compaction request.
+    # `-p` is single-shot; compaction is for long-lived REPL/resume sessions.
+    options = getattr(tool_use_context, "options", None)
+    if getattr(options, "is_non_interactive_session", False):
+        return {"compactionResult": None, "consecutiveFailures": None}
+
     # Circuit breaker: stop retrying after consecutive failures
     if (
         tracking

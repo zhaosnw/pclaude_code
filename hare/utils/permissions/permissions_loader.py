@@ -31,13 +31,23 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def load_permission_rules_from_settings(
     cwd: str | Path | None = None,
+    settings_file: str | Path | None = None,
 ) -> dict[str, dict[str, list[str]]]:
     """Load all permission rules from user, project, and local settings.
+
+    ``settings_file`` is the CLI's --settings flag (main.tsx:521), loaded as an
+    additional source on top of the settings files.
 
     Returns {source: {allow: [...], deny: [...], ask: [...]}}.
     """
     result: dict[str, dict[str, list[str]]] = {}
-    for source, path in _get_settings_paths(cwd).items():
+    paths: dict[str, Path | None] = dict(_get_settings_paths(cwd))
+    if settings_file:
+        flag_path = Path(settings_file)
+        if not flag_path.is_absolute():
+            flag_path = Path(cwd or Path.cwd()) / flag_path
+        paths["flagSettings"] = flag_path
+    for source, path in paths.items():
         if path and path.exists():
             rules = get_permission_rules_for_source(source, path)
             if any(rules.values()):
@@ -147,6 +157,7 @@ def load_permission_context(
     mode: str = "default",
     allowed_tools: list[str] | None = None,
     disallowed_tools: list[str] | None = None,
+    settings_file: str | Path | None = None,
 ) -> Any:
     """Build the runtime permission context used by CLI QueryEngine turns.
 
@@ -156,7 +167,7 @@ def load_permission_context(
     """
     from hare.app_types.permissions import ToolPermissionContext
 
-    rules = load_permission_rules_from_settings(cwd)
+    rules = load_permission_rules_from_settings(cwd, settings_file=settings_file)
     context = ToolPermissionContext(
         mode=mode,  # type: ignore[arg-type]
         always_allow_rules={

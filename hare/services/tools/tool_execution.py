@@ -176,6 +176,23 @@ async def run_tool_use(
                 if isinstance(decision, dict)
                 else getattr(decision, "message", "Blocked by hook")
             )
+            # The released CLI reports a hook-blocked tool in permission_denials
+            # (2.1.87 did not). Denials are recorded by the engine's canUseTool
+            # wrapper, and this path skips it, so replay the decision through
+            # can_use_tool as a forced one purely to register it. The tool_result
+            # still carries the hook's own message.
+            if can_use_tool is not None:
+                try:
+                    await can_use_tool(
+                        tool,
+                        tool_input,
+                        tool_use_context,
+                        assistant_message,
+                        tool_use_id,
+                        behavior,
+                    )
+                except Exception:  # noqa: BLE001 - reporting must not block
+                    pass
             yield MessageUpdateLazy(
                 message=create_user_message(
                     content=[

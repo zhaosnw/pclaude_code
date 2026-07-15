@@ -45,12 +45,26 @@ def matcher_matches_tool(matcher: str | None, tool_name: str) -> bool:
         return matcher == tool_name
 
 
-def load_settings_hooks(cwd: str | None = None) -> list[dict[str, Any]]:
-    """Return command hooks declared across the settings files, in order."""
+def load_settings_hooks(
+    cwd: str | None = None,
+    settings_file: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return command hooks declared across the settings files, in order.
+
+    ``settings_file`` is the CLI's --settings flag: an extra source on top of
+    the chain, so hooks declared there run like any other settings hook.
+    """
     base = cwd or os.getcwd()
     loaded: list[dict[str, Any]] = []
-    for source, resolve in _SETTINGS_SOURCES:
-        path = resolve(base)
+    paths: list[tuple[str, Path]] = [
+        (source, resolve(base)) for source, resolve in _SETTINGS_SOURCES
+    ]
+    if settings_file:
+        flag_path = Path(settings_file)
+        if not flag_path.is_absolute():
+            flag_path = Path(base) / flag_path
+        paths.append(("flagSettings", flag_path))
+    for source, path in paths:
         if not path.is_file():
             continue
         try:
@@ -82,10 +96,13 @@ def load_settings_hooks(cwd: str | None = None) -> list[dict[str, Any]]:
     return loaded
 
 
-def register_settings_hooks(cwd: str | None = None) -> int:
+def register_settings_hooks(
+    cwd: str | None = None,
+    settings_file: str | None = None,
+) -> int:
     """Register settings-declared command hooks; returns how many were added."""
     registry = get_hook_registry()
-    hooks = load_settings_hooks(cwd)
+    hooks = load_settings_hooks(cwd, settings_file=settings_file)
     for hook in hooks:
         registry.register(
             hook["event"],
