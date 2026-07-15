@@ -141,7 +141,13 @@ async def cli_main(args: list[str] | None = None) -> None:
         "--print",
         dest="print_mode",
         metavar="PROMPT",
-        help="Run in non-interactive (print) mode with the given prompt",
+        # The value is optional: `echo "prompt" | claude -p` is the standard
+        # piping idiom, and hare rejected it with an argparse error. nargs="?"
+        # yields None when -p is absent and "" when given without a value, so
+        # the two stay distinguishable downstream.
+        nargs="?",
+        const="",
+        help="Run in non-interactive (print) mode; reads the prompt from stdin if omitted",
     )
     parser.add_argument(
         "-c",
@@ -195,20 +201,28 @@ async def cli_main(args: list[str] | None = None) -> None:
     parser.add_argument(
         "--mcp-config", default=None, nargs="*", help="MCP server configuration files"
     )
+    parser.add_argument(
+        "--settings",
+        default=None,
+        metavar="FILE",
+        help="Additional settings file, loaded on top of the settings chain",
+    )
     parser.add_argument("prompt", nargs="*", help="Prompt text (non-interactive mode)")
 
     parsed = parser.parse_args(args)
 
     if parsed.mcp_config:
         from hare.services.mcp.config import validate_mcp_config_file
+        from hare.utils.debug import log_for_debugging
 
         for config_path in parsed.mcp_config:
             errors = validate_mcp_config_file(config_path)
             if errors:
-                print("Error: Invalid MCP configuration:", file=sys.stderr)
+                # The released CLI does not abort on a malformed --mcp-config:
+                # it skips the bad server and runs the turn normally (exit 0,
+                # nothing on stderr). 2.1.87 exited 1 here.
                 for error in errors:
-                    print(error, file=sys.stderr)
-                sys.exit(1)
+                    log_for_debugging(f"Invalid MCP configuration: {error}")
 
     # Set working directory
     cwd = parsed.cwd or os.getcwd()
@@ -249,6 +263,7 @@ async def cli_main(args: list[str] | None = None) -> None:
         mode=parsed.permission_mode,
         allowed_tools=_split_cli_rules(parsed.allowed_tools),
         disallowed_tools=_split_cli_rules(parsed.disallowed_tools),
+        settings_file=parsed.settings,
     )
 
     # Settings-declared hooks are inert until they are in the registry the tool
@@ -256,7 +271,7 @@ async def cli_main(args: list[str] | None = None) -> None:
     # resume, and REPL turns all honor the same settings files.
     from hare.utils.hooks.settings_hooks import register_settings_hooks
 
-    register_settings_hooks(cwd)
+    register_settings_hooks(cwd, settings_file=parsed.settings)
 
     # Resolve the prompt and mode. Sources, in order: -p/--print value, a
     # positional prompt, or — when stdin is piped (not a TTY) — stdin itself
@@ -379,15 +394,24 @@ async def _resume_existing_session(
 
         result = await load_conversation_for_resume(source, source_jsonl_file)
     except ImportError:
-        print("Error: conversation recovery module not available.")
-        return
+        print("Error: conversation recovery module not available.", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error loading session: {e}")
-        return
+        print(f"Error loading session: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if result is None:
-        print("No session found to resume.")
-        return
+        # The released CLI reports an unknown --resume ID on stderr and exits 1
+        # (2.1.209: "No conversation found with session ID: <id>"). hare printed
+        # to stdout and exited 0, which both corrupts --output-format json and
+        # tells a caller the run succeeded.
+        print(
+            f"No conversation found with session ID: {session_id}"
+            if session_id
+            else "No conversation found to resume.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     loaded_messages = result.get("messages", [])
     loaded_session_id = result.get("sessionId")
@@ -578,6 +602,10 @@ def _align_result_schema(result: dict[str, Any]) -> dict[str, Any]:
     r.setdefault("modelUsage", {})
     r.setdefault("api_error_status", None)
     r.setdefault("ttft_ms", 0)
+    # Time to first *streamed* token, reported alongside ttft_ms by the
+    # released CLI. SDK consumers parse the result object by key, so a missing
+    # key is a contract break even though the value is timing-only.
+    r.setdefault("ttft_stream_ms", 0)
     r.setdefault("time_to_request_ms", 0)
     r.setdefault("fast_mode_state", "off")
     r.setdefault(

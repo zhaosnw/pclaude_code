@@ -159,19 +159,16 @@ def validate_input(input: dict[str, Any]) -> dict[str, Any]:
             "errorCode": 5,
         }
 
-    # Check file was read recently
+    # The released CLI no longer requires a prior Read: editing an unread file
+    # succeeds (verified against 2.1.209, which returns "...has been updated
+    # successfully"; 2.1.87 still refused with "File has not been read yet").
+    # A recorded read is now only used for the staleness check below.
     read_state = _read_file_state.get(full_path)
-    if read_state is None:
-        return {
-            "result": False,
-            "message": "File has not been read yet. Read it first before writing to it.",
-            "errorCode": 6,
-        }
 
     # Check file modification time vs read time
     try:
-        last_write = os.path.getmtime(full_path)
-        if last_write > read_state.get("timestamp", 0):
+        last_write = os.path.getmtime(full_path) if read_state else 0
+        if read_state and last_write > read_state.get("timestamp", 0):
             # Compare content to avoid false positive
             is_full = not read_state.get("offset") and not read_state.get("limit")
             if is_full and file_content == read_state.get("content"):
