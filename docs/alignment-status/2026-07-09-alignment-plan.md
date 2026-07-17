@@ -1,4 +1,4 @@
-# Hare Alignment Plan（2026-07-16 更新版）
+# Hare Alignment Plan（2026-07-17 更新版）
 
 ## 目标
 
@@ -9,13 +9,13 @@
 1. **行为对齐可证明。** 每一块已声明对齐的功能，都有 golden E2E case（正式版 oracle 录制的 golden）作为证据。
 2. **对齐进度可度量。** parity matrix（5 维度、206 行）每项标注 `aligned` / `implemented-unverified`，能回答"离完成度还有多少"。
 
-## 当前状态（2026-07-16）
+## 当前状态（2026-07-17）
 
 ### 验证基线
 
 ```bash
-python -m pytest tests/e2e -q              # 86 passed, 1 xfailed
-python -m pytest tests/ -q                 # 2878 passed, 12 skipped
+python -m pytest tests/e2e -q              # 91 passed, 1 xfailed
+python -m pytest tests/ -q                 # 2883 passed, 12 skipped, 1 xfailed
 make mypy-regression                       # PASS (497)
 make alignment-guardrails                  # 16 passed
 make dogfood                               # 5/5 passed
@@ -66,7 +66,7 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 
 9. **代码审查循环。** 功能对齐不是只补 golden——每完成一轮较大的实现改动（生命周期、权限管线、MCP 路由等），先跑独立验证者审查再合并。具体使用 `scripts/verify/`（见后）提供快速反馈，周期性的多 agent 审查做更深层扫描。
 
-已知的 19 条审查发现（2026-07-16 code review）中，**前 4 条应在下一轮优先修完**，见阶段 5。
+已知的 19 条审查发现（2026-07-16 code review）中，**前 4 条 P0 已于 2026-07-17 清偿**；下一轮优先修 P1 的 4 条，见阶段 5。
 
 ## 阶段 0 / 1 / 2：地基工作（已完成）
 
@@ -139,14 +139,16 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 - 跨进程 fixture cursor 共享
 - content-matched 录制基础设施
 
+**2026-07-16 代码审查的 4 条 P0（2026-07-17 清偿，subagent-driven-development 两阶段审查通过）：**
+
+- **重入循环的 tool_result 丢失**（`query_engine.py`，commit `830c5a80`）：重入的 `async for` 循环补齐了 `user`/`progress`/`attachment`/`system` 分支，与主循环对齐；`user` 分支刻意不加 `turn_count`（重入不是新用户输入，与 `subagent.async_dispatch` 的 known_divergence 一致）。回归测试 `tests/e2e/test_subagent_async_reentry.py::test_reentry_tool_use_gets_a_matching_tool_result` 证明修复前会产生悬空 tool_use。
+- **重入的 max_turns 膨胀**（`query_engine.py`，commit `830c5a80` + `462f573c`）：新增 turn 消耗跟踪，重入时传递递减后的剩余预算而非原始 max_turns。首版实现按 yielded `assistant` 消息计数，被代码审查指出对多 content block 的单个 turn 会重复计数（`hare/tests/test_hare_api_client_streaming.py` 早已验证流式客户端按 block 而非按 turn 产出 `AssistantMessage`）；修正为改用 `query()` 的 `on_transition`/`Continue(reason="next_turn")` 信号计数真实 turn 边界。同一轮审查还发现重入循环缺少主循环的 `max_budget_usd` 熔断检查，已一并补齐。回归测试：`test_max_turns_is_not_inflated_across_multiple_reentries`、`test_multi_block_turn_counts_as_one_turn_not_one_per_block`。
+- **后台子代理超时泄漏**（`query_engine.py`，commit `830c5a80`）：drain while 循环不再对 `wait_for_next_completion()` 超时返回的 `None` 一律 `break`；先查 `async_agent_tasks.has_pending()`，任务仍在跑就继续轮询，只有真正无 pending 时才退出。回归测试 `test_completion_survives_a_mid_poll_timeout`。
+- **后台 agent_id 不一致**（`agent_tool.py`，commit `405250e6`）：`run_in_background` 分支改为只生成一个 `subagent_id`，同时用作 `child_engine` 的 `AgentId`（驱动 `SubagentStop` hook）和异步完成/`<task-notification>` 的 `agent_id`/`tool_use_id`。回归测试 `test_subagent_stop_hook_agent_id_matches_task_notification_id` 独立比对 hook 捕获值、launched 消息里的 `agentId:`、notification 里的 `<task-id>` 三处取值。
+
+四条修复均跑过 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails && make dogfood`，`subagent.async_dispatch` 的 known_divergence（仅 num_turns，hare 2 vs reference 1）保持不变。
+
 ### 待修（来自 2026-07-16 代码审查，按优先级）
-
-**P0：影响行为正确性**
-
-1. **重入循环的 tool_result 丢失**（`query_engine.py:463`）：重入的 async for 循环只处理 assistant 和 stream_event，不处理 user（tool_result 和 progress/attachment）。当重入后的模型响应一个 tool_use 时，工具执行的 tool_result 不落 `_mutable_messages` 也不持久化——transcript 里有悬空 tool_use。**这是当前最该修的 bug。**
-2. **后台子代理超时泄漏**（`async_agent_tasks.py:67`）：`wait_for_next_completion` 30 秒超时 return None → while 循环 break。task 完成后 `record_completion` 写入但无人 drain，子代理结果永久丢失。
-3. **重入的 max_turns 膨胀**（`query_engine.py:460`）：每次重入复制原始 max_turns，不是减量传递。N 次重入 → 总 turn 预算膨胀到 O(M·(N+1))。
-4. **后台 agent_id 不一致**（`agent_tool.py:237 vs 1494`）：子代理引擎的 agent_id 和异步通知的 agent_id 是两个不同的 uuid4()。SubagentStop hook 和 task-notification 各指一个不匹配的 ID。
 
 **P1：影响持久化或健壮性**
 
@@ -169,9 +171,9 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 
 ### 推荐执行顺序
 
-1. 修 P0 的 4 条（先修 tool_result 泄漏确保 transcript 完整）。
+1. ~~修 P0 的 4 条（先修 tool_result 泄漏确保 transcript 完整）~~ ✅ 已于 2026-07-17 清偿，见上「已清偿」。
 2. 每个修复跑 `python -m pytest tests/e2e -q && make mypy-regression && make alignment-guardrails`。
-3. P1 里优先修 `async_agent_tasks.reset()` 和 `CancelledError`。
+3. **P1 里优先修 `AsyncAgent._registry` 只增不删（长会话内存泄漏）和 `CancelledError` 不被后台 drainer 捕获——当前优先级。**
 4. 间隔做 dogfood 验证。
 5. P2 为"已知但不阻塞"。
 
@@ -200,10 +202,11 @@ python scripts/detect_stubs.py
 
 ## 建议执行顺序（续）
 
-当前状态：**已完成"快速覆盖"阶段**。后续工作分为三条线：
+当前状态：**已完成"快速覆盖"阶段，2026-07-16 审查的 4 条 P0 已于 2026-07-17 全部清偿**。后续工作分为三条线：
 
-**主线 A：修复审查发现的 P0 问题（当前优先）**
-- tool_result 泄漏 → max_turns 膨胀 → agent_id 不一致 → 超时泄漏
+**主线 A：修复审查发现的 P1 问题（当前优先）**
+- ~~tool_result 泄漏 → max_turns 膨胀 → agent_id 不一致 → 超时泄漏~~ ✅ 已清偿（commit `830c5a80`、`462f573c`、`405250e6`）
+- 下一批：`AsyncAgent._registry` 内存泄漏 → `CancelledError` 不被后台 drainer 捕获 → `SessionEnd` hooks 阻塞退出 → `resolve_hook_permission_decision` 无异常保护
 - 每修一个跑一遍 dogfood → e2e → mypy 门
 
 **主线 B：按需补覆盖**
@@ -219,14 +222,19 @@ python scripts/detect_stubs.py
 
 在已有暂停点基础上增加（专门针对本轮审查发现）：
 
-- 重入循环新增 `user`/`progress`/`attachment` 分支时必须加 `turn_count += 1` 决策——与主循环对齐，但只在**特定条件下**才应递增。
+- ~~重入循环新增 `user`/`progress`/`attachment` 分支时必须加 `turn_count += 1` 决策~~ ✅ 已实现（`user` 分支不加，与主循环对齐但保留刻意差异）；实现中额外发现 turn 计数不能按 yielded `assistant` 消息数（流式客户端按 content block 产出，一个 turn 可能产出多条），已改用 `on_transition`/`next_turn` 信号计数，见「已清偿」。
 - 后台任务注册表若改为跨引擎共享数据结构，必须重新评估加锁或改用 per-engine 实例。
 - mock server 的 content-matched `once` 文件若加锁逻辑，不得引入死锁（锁内无网络/IO wait）。
 - 在一次修复中同时修 3 条以上 P0 发现时，e2e 全量 + dogfood 是必须的。
+- 新增：重入循环与主循环现存在 ~90 行结构相近的消息分发逻辑（代码审查已指出重复导致过一次 drift——`max_budget_usd` 检查最初只补在主循环）。未做抽取（评估为有风险、需要独立测试覆盖），留作后续任务；下一次任一循环改动都要检查另一循环是否也要同步改。
 
 ## 下一步立刻可开工的任务
 
-1. **修重入 tool_result 泄漏**（P0·1）：在 `query_engine.py` 重入循环补齐 `user`、`progress`、`attachment` 分支——与主循环对齐，注意 `user` 分支不加 `turn_count`（重入不是新用户输入）。
-2. **修 max_turns 膨胀**（P0·3）：重入的 `QueryParams` 传 `remaining_max_turns` 而非原始值。
-3. **同步 agent_id**（P0·4）：后台启动用同一个 AgentId，不再额外 `str(uuid4())`。
-4. **修超时泄漏**（P0·2）：`wait_for_next_completion` 超时后检查一次 `_registry.completions` 再决定 break 还是继续等。
+2026-07-16 审查的 4 条 P0 已全部清偿（见「已清偿」，commit `830c5a80` / `462f573c` / `405250e6`）。下一批（P1，按`阶段 5`列出的优先级）：
+
+1. **`AsyncAgent._registry` 只增不删**（P1·5）：长会话轻微内存泄漏，需要 prune 已完成/已消费的任务和 completion。
+2. **`CancelledError` 不被后台 drainer 捕获**（P1·6）：Ctrl+C 时 `record_completion` 不触发，需要在后台任务的取消路径上补处理。
+3. **`SessionEnd` hooks 在 finally 块阻塞退出**（P1·7）：command hook 挂起可能锁住进程，需要超时/非阻塞化。
+4. **`resolve_hook_permission_decision` 不在 except 保护内**（P1·8）：`tool.check_permissions` 抛异常会崩整个 turn，需要异常边界。
+
+每修一条按「已清偿」条目的模式跑 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails`，多条一起改时补 `make dogfood`。
