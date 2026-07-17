@@ -334,10 +334,20 @@ class QueryEngine:
             task_budget=config.task_budget,
         )
 
+        # Cumulative count of internal query() turns consumed so far in this
+        # submit_message() call (Bug 2: max_turns budget must be shared across
+        # the initial query() call and every background-completion re-entry
+        # query() call below, not re-granted in full on each re-entry). One
+        # "turn" == one model call, signalled by one yielded assistant message
+        # — query() resets its own internal turn_count to 1 on every fresh
+        # invocation, so this has to be tracked here instead.
+        turns_consumed = 0
+
         async for message in query(query_params):
             msg_type = getattr(message, "type", None)
 
             if msg_type == "assistant":
+                turns_consumed += 1
                 self._mutable_messages.append(message)
                 self._persist_message(message, persist=persist_session, cwd=cwd)
                 yield self._normalize_message(message)
@@ -429,7 +439,11 @@ class QueryEngine:
         # <task-notification> message so the parent can react to the result
         # (AgentTool.tsx). Drain completions and run one more query per batch,
         # injecting the notification as a system message. The notification is
-        # not a user turn, so turn_count is not incremented.
+        # not a user turn, so turn_count (the outer, semantic engine turn
+        # counter used e.g. in max_turns_reached result payloads) is not
+        # incremented here — see the "user" branch below. That is a distinct
+        # concern from turns_consumed (the internal query() budget counter)
+        # tracked immediately below.
         from hare.tools_impl.AgentTool import async_agent_tasks
 
         # Only the top-level (non-subagent) loop drains background completions.
@@ -438,9 +452,32 @@ class QueryEngine:
         # for it.
         is_subagent = getattr(config, "agent_id", None) is not None
 
-        while not is_subagent and async_agent_tasks.has_pending():
+        # Bug 2 fix: max_turns is an absolute per-conversation cap, but each
+        # query() invocation resets its own internal turn counter to 1. Track
+        # how much of the original budget the initial call already spent, and
+        # shrink the max_turns passed to each re-entry call accordingly so the
+        # initial call + all re-entries never consume more than `max_turns`
+        # turns in total.
+        remaining_turns = max_turns - turns_consumed if max_turns is not None else None
+
+        def _budget_exhausted() -> bool:
+            return remaining_turns is not None and remaining_turns <= 0
+
+        while (
+            not is_subagent
+            and async_agent_tasks.has_pending()
+            and not _budget_exhausted()
+        ):
             completion = await async_agent_tasks.wait_for_next_completion()
             if completion is None:
+                # wait_for_next_completion() times out (30s) both when there is
+                # truly nothing left pending AND when a background task is
+                # simply still running past the poll window (Bug 3). Only the
+                # former should end the drain loop — re-check has_pending() to
+                # tell them apart, otherwise a slow-but-live task's eventual
+                # completion would be silently dropped for this call.
+                if async_agent_tasks.has_pending():
+                    continue
                 break
             batch = [completion, *async_agent_tasks.drain_completions()]
             for done in batch:
@@ -457,18 +494,45 @@ class QueryEngine:
                 tool_use_context=tool_use_context,
                 fallback_model=config.fallback_model,
                 query_source=query_source_override or "sdk",
-                max_turns=max_turns,
+                max_turns=remaining_turns,
                 task_budget=config.task_budget,
             )
+            reentry_turns_consumed = 0
             async for message in query(reentry_params):
                 msg_type = getattr(message, "type", None)
                 if msg_type == "assistant":
+                    reentry_turns_consumed += 1
                     assistant_msg = cast(Message, message)
                     self._mutable_messages.append(assistant_msg)
                     self._persist_message(
                         assistant_msg, persist=persist_session, cwd=cwd
                     )
                     yield self._normalize_message(assistant_msg)
+
+                elif msg_type == "user":
+                    # Bug 1 fix: query() executes tool_use blocks internally
+                    # and yields their tool_result as a "user"-type message.
+                    # Previously dropped here, leaving a dangling tool_use in
+                    # the transcript with no matching tool_result — the next
+                    # real user turn would then feed that broken history back
+                    # to the Anthropic API. Deliberately does NOT increment
+                    # turn_count: a <task-notification> re-entry is not a new
+                    # user input and must not consume the conversation's
+                    # user-facing turn budget the way a fresh user message
+                    # does (see known_divergence in
+                    # subagent/async_dispatch/case.json).
+                    reentry_user_msg = cast(Message, message)
+                    self._mutable_messages.append(reentry_user_msg)
+                    self._persist_message(
+                        reentry_user_msg, persist=persist_session, cwd=cwd
+                    )
+                    yield self._normalize_message(reentry_user_msg)
+
+                elif msg_type == "progress":
+                    progress_msg = cast(Message, message)
+                    self._mutable_messages.append(progress_msg)
+                    yield self._normalize_message(progress_msg)
+
                 elif msg_type == "stream_event":
                     event = getattr(message, "event", {})
                     event_type = event.get("type", "")
@@ -489,6 +553,46 @@ class QueryEngine:
                         self._total_usage = accumulate_usage(
                             self._total_usage, current_message_usage
                         )
+                    yield {
+                        "type": "stream_event",
+                        "session_id": get_session_id(),
+                        "event": event,
+                    }
+
+                elif msg_type == "attachment":
+                    attachment_msg = cast(Message, message)
+                    self._mutable_messages.append(attachment_msg)
+                    attachment = getattr(attachment_msg, "attachment", {})
+                    if attachment.get("type") == "max_turns_reached":
+                        yield {
+                            "type": "result",
+                            "subtype": "error_max_turns",
+                            "is_error": True,
+                            "duration_ms": (time.time() - start_time) * 1000,
+                            "num_turns": attachment.get("turnCount", turn_count),
+                            "stop_reason": last_stop_reason,
+                            "session_id": get_session_id(),
+                            "total_cost_usd": get_total_cost(),
+                            "usage": self._total_usage,
+                            "permission_denials": self._permission_denials,
+                            "uuid": str(uuid4()),
+                        }
+                        return
+
+                elif msg_type == "system":
+                    system_msg = cast(Message, message)
+                    self._mutable_messages.append(system_msg)
+                    subtype = getattr(system_msg, "subtype", "")
+                    if subtype == "compact_boundary":
+                        yield {
+                            "type": "system",
+                            "subtype": "compact_boundary",
+                            "session_id": get_session_id(),
+                            "uuid": getattr(system_msg, "uuid", ""),
+                        }
+
+            if remaining_turns is not None:
+                remaining_turns -= reentry_turns_consumed
 
         # Extract text result from last assistant message
         text_result = ""
