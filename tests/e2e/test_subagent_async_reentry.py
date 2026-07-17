@@ -464,3 +464,115 @@ def test_completion_survives_a_mid_poll_timeout():
             if result:
                 break
     assert result == "Handled the notification."
+
+
+# ---------------------------------------------------------------------------
+# Bug 4 — the child engine's AgentId (what SubagentStop fires against) and
+# the background-completion id (what the parent sees in the "Async agent
+# launched" result and the eventual <task-notification>/<task-id>) must be
+# the SAME identity for one logical subagent dispatch.
+# ---------------------------------------------------------------------------
+
+
+def test_subagent_stop_hook_agent_id_matches_task_notification_id():
+    """agent_tool.py's run_in_background branch used to mint TWO independent
+    uuid4() values for what is logically a single subagent run: one became
+    the child QueryEngine's AgentId (config.agent_id), which is what
+    execute_stop_hooks keys off to fire SubagentStop instead of a
+    main-session Stop; the other, generated separately, became the
+    background-completion's agent_id/tool_use_id — the value reported back
+    to the parent as "agentId: ..." in the launched-tool result and later
+    embedded in the <task-id>/<tool-use-id> of the <task-notification>
+    re-entry message. Anything trying to correlate "which subagent just
+    stopped" (the hook) with "which subagent's background task just
+    completed" (the notification the parent model is told to SendMessage
+    to) saw two unrelated ids for the same run.
+
+    This test registers a real SubagentStop hook callback (through the same
+    AsyncHookRegistry.register() path exercised by
+    tests/test_tool_hooks_runtime.py) to capture the agent_id the hook fires
+    with, drives a background Agent dispatch to completion, and asserts that
+    id matches both the "agentId: <id>" text in the launched-tool result and
+    the <task-id> embedded in the resulting <task-notification>."""
+    import re
+
+    from hare.utils.hooks import get_hook_registry
+
+    registry = get_hook_registry()
+    captured_agent_ids: list = []
+
+    def _capture_subagent_stop(context: dict) -> dict:
+        captured_agent_ids.append(context.get("agent_id"))
+        return {}
+
+    registry.register(
+        "SubagentStop", "test-capture-subagent-stop", _capture_subagent_stop,
+        source="test",
+    )
+    try:
+        script = [
+            _tool_use(
+                "t_spawn",
+                "Agent",
+                {
+                    "description": "bg",
+                    "prompt": "CHILD_PROMPT",
+                    "run_in_background": True,
+                },
+            ),  # 0: parent main loop turn 1
+            _text("Launched it."),  # 1: parent main loop turn 2
+            _text("CHILD_RESULT_MARKER"),  # 2: child's own turn 1 -- its
+            # teardown is what fires SubagentStop, captured above.
+            _text("Handled the notification."),  # 3: parent re-entry turn 1
+        ]
+        calls, client = _drive(script, ["delegate this to a background agent"])
+    finally:
+        registry.unregister("SubagentStop", "test-capture-subagent-stop")
+
+    assert len(captured_agent_ids) == 1, (
+        f"expected exactly one SubagentStop firing, got {captured_agent_ids}"
+    )
+    subagent_stop_agent_id = captured_agent_ids[0]
+    assert subagent_stop_agent_id
+
+    # Find the "Async agent launched" tool_result for the spawn tool_use and
+    # pull the id out of its "agentId: <id> (internal ID ..." text.
+    launched_text = None
+    for msg in client.engine._mutable_messages:
+        if getattr(msg, "type", None) != "user":
+            continue
+        content = msg.message.content
+        if not isinstance(content, list):
+            continue
+        for b in content:
+            if (
+                isinstance(b, dict)
+                and b.get("type") == "tool_result"
+                and b.get("tool_use_id") == "t_spawn"
+            ):
+                launched_text = b.get("content")
+    assert launched_text, "no tool_result found for the spawn tool_use (t_spawn)"
+    launched_match = re.search(r"agentId: (\S+) \(", launched_text)
+    assert launched_match, f"no 'agentId: ...' found in launched text: {launched_text!r}"
+    launched_agent_id = launched_match.group(1)
+
+    # Find the <task-notification> re-entry message and pull out <task-id>.
+    notification_text = None
+    for msg in client.engine._mutable_messages:
+        if getattr(msg, "type", None) != "user":
+            continue
+        content = msg.message.content
+        if isinstance(content, str) and "<task-notification>" in content:
+            notification_text = content
+    assert notification_text, "no <task-notification> message found in transcript"
+    task_id_match = re.search(r"<task-id>(.*?)</task-id>", notification_text)
+    assert task_id_match, f"no <task-id> found in notification: {notification_text!r}"
+    notification_task_id = task_id_match.group(1)
+
+    assert subagent_stop_agent_id == launched_agent_id == notification_task_id, (
+        "the id the SubagentStop hook fired with must be the SAME id the "
+        "parent was told to use to address this agent — got "
+        f"SubagentStop agent_id={subagent_stop_agent_id!r}, "
+        f"launched agentId={launched_agent_id!r}, "
+        f"task-notification task-id={notification_task_id!r}"
+    )

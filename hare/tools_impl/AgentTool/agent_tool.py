@@ -224,6 +224,16 @@ class _AgentTool(ToolBase):
             ) -> Any:
                 return PermissionAllowDecision(behavior="allow", updated_input=inp)
 
+            # One id identifies this subagent everywhere: as the child
+            # engine's AgentId (below — what makes its teardown fire
+            # SubagentStop instead of a main-session Stop) and, for
+            # run_in_background dispatches, as the background-completion
+            # agent_id/tool_use_id reported to the parent (further down).
+            # Previously these were two independently generated uuid4()s, so
+            # the SubagentStop hook and the eventual <task-notification>
+            # referenced unrelated ids for the same subagent run.
+            subagent_id = str(uuid4())
+
             child_engine = QueryEngine(
                 QueryEngineConfig(
                     cwd=get_cwd(),
@@ -236,7 +246,7 @@ class _AgentTool(ToolBase):
                     verbose=False,
                     # Identifies the child as a subagent, so its teardown fires
                     # SubagentStop rather than a main-session Stop.
-                    agent_id=AgentId(str(uuid4())),
+                    agent_id=AgentId(subagent_id),
                     agent_type=subagent_type or "general-purpose",
                 )
             )
@@ -252,7 +262,7 @@ class _AgentTool(ToolBase):
             # subagent runs on independently. Synchronous dispatch
             # (run_in_background=false) keeps the original blocking behavior.
             if run_in_background:
-                agent_id = str(uuid4())
+                agent_id = subagent_id
                 # Run the subagent concurrently and return "launched"
                 # immediately (AgentTool.tsx). The background runner records a
                 # completion; QueryEngine drains it after the parent's turn and
