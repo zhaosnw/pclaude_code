@@ -22,7 +22,7 @@ from uuid import uuid4
 from hare.bootstrap.state import get_session_id, is_session_persistence_disabled
 from hare.commands import get_slash_command_tool_skills
 from hare.cost_tracker import get_model_usage, get_total_api_duration, get_total_cost
-from hare.query import query, QueryParams
+from hare.query import query, Continue, QueryParams
 from hare.services.api.logging import (
     accumulate_usage,
     empty_usage,
@@ -42,6 +42,44 @@ from hare.utils.messages import (
     extract_text_content,
     get_content_text,
 )
+
+
+class _TurnConsumptionCounter:
+    """Counts the real turns a single query() invocation consumes.
+
+    query() resets its own internal turn counter to 1 on every fresh
+    invocation and doesn't expose it directly, but it does call
+    ``on_transition(Continue(reason="next_turn"))`` exactly once per turn
+    that continues into another turn (query/core.py's ``state.turn_count``
+    is only ever bumped in that same state.replace() call) — the final turn
+    of an invocation never fires it, since that turn ends the loop instead.
+    So total turns consumed == (# of "next_turn" transitions) + 1, once at
+    least one model call actually happened.
+
+    Counting yielded ``assistant``-type messages instead would overcount:
+    hare/services/api/client.py's streaming request handler yields a
+    *separate* AssistantMessage per content block (see
+    test_streaming_request_events_yields_per_block_not_cumulative in
+    hare/tests/test_hare_api_client_streaming.py), so a single turn with,
+    say, a text preamble plus a tool_use block (or a thinking block plus a
+    text/tool_use block under extended thinking) yields two or more
+    assistant messages for that one turn, not one.
+    """
+
+    def __init__(self) -> None:
+        self._next_turn_transitions = 0
+        self._saw_assistant_message = False
+
+    def on_transition(self, transition: Continue) -> None:
+        if getattr(transition, "reason", None) == "next_turn":
+            self._next_turn_transitions += 1
+
+    def note_assistant_message(self) -> None:
+        self._saw_assistant_message = True
+
+    @property
+    def turns_consumed(self) -> int:
+        return self._next_turn_transitions + (1 if self._saw_assistant_message else 0)
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +359,12 @@ class QueryEngine:
             self._wrap_can_use_tool_tracking(can_use_tool) if can_use_tool else None
         )
 
+        # Turn budget consumed by this initial query() call (Bug 2: max_turns
+        # must be a conversation-wide cap shared across this call and every
+        # background-completion re-entry query() call below, not re-granted
+        # in full on each re-entry — see _TurnConsumptionCounter).
+        turn_counter = _TurnConsumptionCounter()
+
         query_params = QueryParams(
             messages=messages,
             system_prompt=system_prompt,
@@ -332,22 +376,14 @@ class QueryEngine:
             query_source=query_source_override or "sdk",
             max_turns=max_turns,
             task_budget=config.task_budget,
+            on_transition=turn_counter.on_transition,
         )
-
-        # Cumulative count of internal query() turns consumed so far in this
-        # submit_message() call (Bug 2: max_turns budget must be shared across
-        # the initial query() call and every background-completion re-entry
-        # query() call below, not re-granted in full on each re-entry). One
-        # "turn" == one model call, signalled by one yielded assistant message
-        # — query() resets its own internal turn_count to 1 on every fresh
-        # invocation, so this has to be tracked here instead.
-        turns_consumed = 0
 
         async for message in query(query_params):
             msg_type = getattr(message, "type", None)
 
             if msg_type == "assistant":
-                turns_consumed += 1
+                turn_counter.note_assistant_message()
                 self._mutable_messages.append(message)
                 self._persist_message(message, persist=persist_session, cwd=cwd)
                 yield self._normalize_message(message)
@@ -442,7 +478,7 @@ class QueryEngine:
         # not a user turn, so turn_count (the outer, semantic engine turn
         # counter used e.g. in max_turns_reached result payloads) is not
         # incremented here — see the "user" branch below. That is a distinct
-        # concern from turns_consumed (the internal query() budget counter)
+        # concern from turn_counter (the internal query() budget counter)
         # tracked immediately below.
         from hare.tools_impl.AgentTool import async_agent_tasks
 
@@ -458,7 +494,9 @@ class QueryEngine:
         # shrink the max_turns passed to each re-entry call accordingly so the
         # initial call + all re-entries never consume more than `max_turns`
         # turns in total.
-        remaining_turns = max_turns - turns_consumed if max_turns is not None else None
+        remaining_turns = (
+            max_turns - turn_counter.turns_consumed if max_turns is not None else None
+        )
 
         def _budget_exhausted() -> bool:
             return remaining_turns is not None and remaining_turns <= 0
@@ -485,6 +523,7 @@ class QueryEngine:
                 notice_msg = create_user_message(content=notice)
                 self._mutable_messages.append(notice_msg)
                 self._persist_message(notice_msg, persist=persist_session, cwd=cwd)
+            reentry_turn_counter = _TurnConsumptionCounter()
             reentry_params = QueryParams(
                 messages=list(self._mutable_messages),
                 system_prompt=system_prompt,
@@ -496,12 +535,12 @@ class QueryEngine:
                 query_source=query_source_override or "sdk",
                 max_turns=remaining_turns,
                 task_budget=config.task_budget,
+                on_transition=reentry_turn_counter.on_transition,
             )
-            reentry_turns_consumed = 0
             async for message in query(reentry_params):
                 msg_type = getattr(message, "type", None)
                 if msg_type == "assistant":
-                    reentry_turns_consumed += 1
+                    reentry_turn_counter.note_assistant_message()
                     assistant_msg = cast(Message, message)
                     self._mutable_messages.append(assistant_msg)
                     self._persist_message(
@@ -591,8 +630,27 @@ class QueryEngine:
                             "uuid": getattr(system_msg, "uuid", ""),
                         }
 
+                # Check USD budget (mirrors the main loop's check above — a
+                # background-completion re-entry can itself run tools and
+                # accrue cost, so it must be bound by the same budget).
+                if max_budget_usd is not None and get_total_cost() >= max_budget_usd:
+                    yield {
+                        "type": "result",
+                        "subtype": "error_max_budget_usd",
+                        "is_error": True,
+                        "duration_ms": (time.time() - start_time) * 1000,
+                        "num_turns": turn_count,
+                        "stop_reason": last_stop_reason,
+                        "session_id": get_session_id(),
+                        "total_cost_usd": get_total_cost(),
+                        "usage": self._total_usage,
+                        "permission_denials": self._permission_denials,
+                        "uuid": str(uuid4()),
+                    }
+                    return
+
             if remaining_turns is not None:
-                remaining_turns -= reentry_turns_consumed
+                remaining_turns -= reentry_turn_counter.turns_consumed
 
         # Extract text result from last assistant message
         text_result = ""

@@ -29,7 +29,19 @@ def _make_call_model(script, calls):
     since they share one event loop), falling back to a safe end_turn text
     for any call beyond the scripted sequence so an unexpected extra call
     can't hang the test — it shows up as a call-count assertion failure
-    instead."""
+    instead.
+
+    A script entry is normally a single response dict (one content block,
+    one AssistantMessage yielded for that call). It may instead be a *list*
+    of response dicts to simulate a real streaming turn with multiple
+    content blocks (e.g. a text preamble followed by a tool_use): the real
+    client (hare/services/api/client.py's _streaming_request_events) yields
+    one *separate* AssistantMessage per content_block_stop for a single
+    logical turn — see
+    test_streaming_request_events_yields_per_block_not_cumulative in
+    hare/tests/test_hare_api_client_streaming.py — so a list entry yields
+    each block dict in turn, all from the one call_model invocation (one
+    entry in `calls`), matching that shape."""
     SAFETY = {
         "content": [{"type": "text", "text": "stop"}],
         "stop_reason": "end_turn",
@@ -39,12 +51,14 @@ def _make_call_model(script, calls):
         i = len(calls)
         calls.append(payload)
         r = script[i] if i < len(script) else SAFETY
-        yield {
-            "type": "assistant",
-            "content": r["content"],
-            "stop_reason": r["stop_reason"],
-            "usage": {"input_tokens": 1, "output_tokens": 1},
-        }
+        blocks = r if isinstance(r, list) else [r]
+        for block in blocks:
+            yield {
+                "type": "assistant",
+                "content": block["content"],
+                "stop_reason": block["stop_reason"],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
 
     return call_model
 
@@ -60,6 +74,13 @@ def _tool_use(tool_use_id, name, input):
         ],
         "stop_reason": "tool_use",
     }
+
+
+def _text_preamble_block(s):
+    """A non-final content block within a multi-block turn (see
+    _make_call_model's list-entry support) — mirrors an in-progress
+    streaming block, which carries no stop_reason yet."""
+    return {"content": [{"type": "text", "text": s}], "stop_reason": None}
 
 
 def _drive(script, prompts, *, max_turns=None):
@@ -290,6 +311,77 @@ def test_max_turns_is_not_inflated_across_multiple_reentries():
     # Pin the exact expected count too (not just the bound), so a future
     # change that starves the budget *too* early also gets caught.
     assert len(parent_calls) == 4
+
+
+@pytest.mark.integration
+def test_multi_block_turn_counts_as_one_turn_not_one_per_block():
+    """A single logical turn with a text preamble + a tool_use block streams
+    as TWO separate AssistantMessage yields from the real client (see
+    _make_call_model's docstring and
+    test_streaming_request_events_yields_per_block_not_cumulative) — but it
+    is still only one real query()-internal turn. Counting yielded
+    assistant messages (instead of the query()-internal turn-boundary
+    signal) would treat it as two, shrinking the re-entry's max_turns
+    budget twice as fast as it should.
+
+    max_turns=3, and the real turn cost is exactly 2 (main loop) + 1
+    (re-entry) = 3:
+      - main loop turn 1 (2 content blocks: text + Agent bg-dispatch
+        tool_use) -> 1 real turn
+      - main loop turn 2 (post-launch continuation, plain text)   -> 1 real
+        turn
+      - re-entry turn 1 (plain text, answering the notification)  -> 1 real
+        turn, needs exactly the 1 turn of budget left over (3 - 2 = 1)
+
+    Miscounting main loop turn 1 as 2 (one per block) leaves only 3-3=0
+    turns of budget for the re-entry, and the budget-exhausted check would
+    then skip the re-entry's query() call entirely — the notification would
+    never be drained and the final response would still be "Launched it.",
+    not "Handled it.". With correct counting, the re-entry gets its 1 turn
+    and completes normally."""
+    script = [
+        [
+            _text_preamble_block("I'll dispatch this in the background."),
+            _tool_use(
+                "t_spawn",
+                "Agent",
+                {
+                    "description": "bg",
+                    "prompt": "A",
+                    "run_in_background": True,
+                },
+            ),
+        ],  # 0: parent main loop turn 1 — TWO content blocks, ONE real turn
+        _text("Launched it."),  # 1: parent main loop turn 2
+        _text("child done"),  # 2: child turn 1
+        _text("Handled it."),  # 3: parent re-entry turn 1
+    ]
+    calls, client = _drive(script, ["delegate this to a background agent"], max_turns=3)
+
+    parent_calls = [c for c in calls if _is_parent_call(c)]
+    assert len(parent_calls) == 3, (
+        f"expected all 3 real parent turns to run within max_turns=3, got "
+        f"{len(parent_calls)} parent calls — a multi-block turn is likely "
+        f"still being over-counted as more than one turn"
+    )
+
+    result = None
+    for msg in reversed(client.engine._mutable_messages):
+        if getattr(msg, "type", None) == "assistant":
+            content = msg.message.content
+            if isinstance(content, list):
+                for b in content:
+                    if isinstance(b, dict) and b.get("type") == "text":
+                        result = b.get("text")
+                        break
+            if result:
+                break
+    assert result == "Handled it.", (
+        f"expected the re-entry's response to have run (final text "
+        f"'Handled it.'), got {result!r} — the re-entry was likely skipped "
+        f"because the multi-block main-loop turn was miscounted as 2 turns, "
+        f"leaving no budget for the re-entry"
+    )
 
 
 # ---------------------------------------------------------------------------
