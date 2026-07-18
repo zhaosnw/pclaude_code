@@ -1,4 +1,4 @@
-# Hare Alignment Plan（2026-07-17 更新版）
+# Hare Alignment Plan（2026-07-18 更新版）
 
 ## 目标
 
@@ -9,13 +9,13 @@
 1. **行为对齐可证明。** 每一块已声明对齐的功能，都有 golden E2E case（正式版 oracle 录制的 golden）作为证据。
 2. **对齐进度可度量。** parity matrix（5 维度、206 行）每项标注 `aligned` / `implemented-unverified`，能回答"离完成度还有多少"。
 
-## 当前状态（2026-07-17）
+## 当前状态（2026-07-18）
 
 ### 验证基线
 
 ```bash
-python -m pytest tests/e2e -q              # 91 passed, 1 xfailed
-python -m pytest tests/ -q                 # 2883 passed, 12 skipped, 1 xfailed
+python -m pytest tests/e2e -q              # 92 passed, 1 xfailed
+python -m pytest tests/ -q                 # 2894 passed, 12 skipped, 1 xfailed
 make mypy-regression                       # PASS (497)
 make alignment-guardrails                  # 16 passed
 make dogfood                               # 5/5 passed
@@ -66,7 +66,7 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 
 9. **代码审查循环。** 功能对齐不是只补 golden——每完成一轮较大的实现改动（生命周期、权限管线、MCP 路由等），先跑独立验证者审查再合并。具体使用 `scripts/verify/`（见后）提供快速反馈，周期性的多 agent 审查做更深层扫描。
 
-已知的 19 条审查发现（2026-07-16 code review）中，**前 4 条 P0 已于 2026-07-17 清偿**；下一轮优先修 P1 的 4 条，见阶段 5。
+已知的 19 条审查发现（2026-07-16 code review）中，**P0 的 4 条已于 2026-07-17 清偿，P1 的 4 条已于 2026-07-18 清偿**；剩余 3 条 P2 为"已知但不阻塞"，见阶段 5。
 
 ## 阶段 0 / 1 / 2：地基工作（已完成）
 
@@ -148,14 +148,17 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 
 四条修复均跑过 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails && make dogfood`，`subagent.async_dispatch` 的 known_divergence（仅 num_turns，hare 2 vs reference 1）保持不变。
 
+**2026-07-16 代码审查的 4 条 P1（2026-07-18 清偿，subagent-driven-development 两阶段审查通过）：**
+
+- **`AsyncAgent._registry` 只增不删**（`async_agent_tasks.py`，commit `677eb5f3` + `90e8f910`）：新增 `_prune_done_tasks()`，在 `has_pending()`/`wait_for_next_completion()` 读取时把 `done()` 的 task 从 `_registry.tasks` 里清掉，而不是永久持有。同一提交顺带修了 `agent_tool.py`（`_run_background()`）里 `except Exception: pass` 不捕获 `asyncio.CancelledError`（`BaseException` 子类）的问题，改为显式 `except asyncio.CancelledError: raise`（代码审查指出这在本仓库 Python 3.11+ 上其实是无害的防御性写法，原 bug 描述的"被 Exception 吞掉"机制本身不准确——`CancelledError` 从来都不是 `Exception` 子类，但取消后 registry 不清理的问题是真实的，已随 pruning 一并解决）。回归测试最初误放在不受 CI 门禁收集的 `hare/tests/`（legacy 镜像层），已在 `90e8f910` 中迁移到 canonical `tests/test_async_agent_tasks.py` 和 `tests/e2e/test_subagent_async_reentry.py`（`tests/e2e` 92→92 保持，`tests/` 2883→2887）。
+- **SessionEnd hooks 在 finally 块阻塞退出**（`main.py` + `hooks/__init__.py` + `exec_hook.py`，commit `6aad1afb` + `6d4d05f0`）：`execute_session_end_hooks()` 新增可选 `timeout_sec` 参数，退出路径传 5 秒（`SESSION_END_EXIT_HOOK_TIMEOUT_MS`）取代原本每个 hook 最多 10 分钟的默认值；不传时其余调用方行为不变。同时修了 `exec_hook.py` 超时/取消路径从未真正杀掉子进程的问题（`asyncio.wait_for` 超时只停止等待，不终止子进程）——新增 `_kill_orphaned_process()`，`kill()` 后 `wait()` 避免僵尸进程，覆盖 `TimeoutError` 和从外层传入的 `CancelledError` 两条路径。代码审查后追加 `6d4d05f0` 把 `kill()` 的异常保护从只挡 `ProcessLookupError` 扩到挡所有 `OSError`，避免小概率场景下把待传播的 `CancelledError` 意外吞掉。`tests/` 2887→2893（新增 6 个测试，均在 canonical `tests/`）。
+- **`resolve_hook_permission_decision` 不在 except 保护内**（`tool_execution.py`，commit `26ede65f`）：`resolve_hook_permission_decision(...)` 调用及其依赖的结果处理包进 `try/except Exception/else`，与紧邻上方 `run_pre_tool_use_hooks` 的既有保护模式一致——异常时把 `hook_permission` 重置为 `None`，走正常的 rule-based/`can_use_tool` 权限流程（fail-open，不是 fail-closed，也不是静默放行：仍然过一遍真实的权限检查）。成功路径的 deny/ask/allow/passthrough 逻辑原样保留在 `else` 里，未做语义改动。`tests/` 2893→2894。
+
+四条修复同样均跑过完整验证门禁（e2e / 全量单测 / mypy-regression / alignment-guardrails / dogfood），无回归。
+
 ### 待修（来自 2026-07-16 代码审查，按优先级）
 
-**P1：影响持久化或健壮性**
-
-5. **`AsyncAgent._registry` 只增不删**——长会话轻微内存泄漏。
-6. **`CancelledError` 不被后台 drainer 捕获**——Ctrl+C 时 record_completion 不触发。
-7. **SessionEnd hooks 在 finally 块阻塞退出**——command hook 挂起可能锁住进程。
-8. **`resolve_hook_permission_decision` 不在 except 保护内**——tool.check_permissions 抛异常会崩整个 turn。
+P0、P1 共 8 条已全部清偿。剩余仅 P2（边界场景/测试设施，"已知但不阻塞"）：
 
 **P2：边界场景/测试设施**
 
@@ -172,10 +175,10 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 ### 推荐执行顺序
 
 1. ~~修 P0 的 4 条（先修 tool_result 泄漏确保 transcript 完整）~~ ✅ 已于 2026-07-17 清偿，见上「已清偿」。
-2. 每个修复跑 `python -m pytest tests/e2e -q && make mypy-regression && make alignment-guardrails`。
-3. **P1 里优先修 `AsyncAgent._registry` 只增不删（长会话内存泄漏）和 `CancelledError` 不被后台 drainer 捕获——当前优先级。**
+2. ~~修 P1 的 4 条~~ ✅ 已于 2026-07-18 清偿，见上「已清偿」。
+3. 每个修复跑 `python -m pytest tests/e2e -q && make mypy-regression && make alignment-guardrails`。
 4. 间隔做 dogfood 验证。
-5. P2 为"已知但不阻塞"。
+5. **剩余 P2 为"已知但不阻塞"，不主动排期，等有人报告差异或触碰到相关代码再顺手修。**
 
 ## 阶段 6：Dogfood（已完成并接入 CI）
 
@@ -202,21 +205,21 @@ python scripts/detect_stubs.py
 
 ## 建议执行顺序（续）
 
-当前状态：**已完成"快速覆盖"阶段，2026-07-16 审查的 4 条 P0 已于 2026-07-17 全部清偿**。后续工作分为三条线：
+当前状态：**已完成"快速覆盖"阶段，2026-07-16 审查的 19 条发现中 P0（4条）+ P1（4条）已全部清偿**（分别于 2026-07-17、2026-07-18 完成）。后续工作分为三条线：
 
-**主线 A：修复审查发现的 P1 问题（当前优先）**
+**主线 A：审查发现的 P0/P1 已全部清偿**
 - ~~tool_result 泄漏 → max_turns 膨胀 → agent_id 不一致 → 超时泄漏~~ ✅ 已清偿（commit `830c5a80`、`462f573c`、`405250e6`）
-- 下一批：`AsyncAgent._registry` 内存泄漏 → `CancelledError` 不被后台 drainer 捕获 → `SessionEnd` hooks 阻塞退出 → `resolve_hook_permission_decision` 无异常保护
-- 每修一个跑一遍 dogfood → e2e → mypy 门
+- ~~`AsyncAgent._registry` 内存泄漏 → `CancelledError` 不被后台 drainer 捕获 → `SessionEnd` hooks 阻塞退出 → `resolve_hook_permission_decision` 无异常保护~~ ✅ 已清偿（commit `677eb5f3`、`90e8f910`、`6aad1afb`、`6d4d05f0`、`26ede65f`）
+- 剩余 P2（cursor+consumed TOCTOU、tool_execution 的 `except: pass` import、mock server 5xx 无限重试）按"已知但不阻塞"处理，不主动排期
 
 **主线 B：按需补覆盖**
 - 不在 CLI flag 上消耗大量时间。按需补：发现 bug 时补 case + 修；受报告驱动的 flag 做 golden。
 - 高价值：`--output-format stream-json` 输入侧、`--input-format stream-json`。
 
 **支线：基础设施增强**
-- 后台任务注册表 task 清理（`_registry.tasks` prune completed）
-- mock server 无匹配时给更快反馈（而非 SDK 重试 2 分钟后超时）
-- Content-matched harness 的并发安全性提升
+- ~~后台任务注册表 task 清理（`_registry.tasks` prune completed）~~ ✅ 已清偿（commit `677eb5f3`，见阶段 5）
+- mock server 无匹配时给更快反馈（而非 SDK 重试 2 分钟后超时）—— P2·11，未排期
+- Content-matched harness 的并发安全性提升 —— P2·9（cursor+consumed TOCTOU），未排期
 
 ## 暂停点（新增）
 
@@ -230,11 +233,10 @@ python scripts/detect_stubs.py
 
 ## 下一步立刻可开工的任务
 
-2026-07-16 审查的 4 条 P0 已全部清偿（见「已清偿」，commit `830c5a80` / `462f573c` / `405250e6`）。下一批（P1，按`阶段 5`列出的优先级）：
+2026-07-16 审查的 19 条发现中 P0（4条，commit `830c5a80`/`462f573c`/`405250e6`）与 P1（4条，commit `677eb5f3`/`90e8f910`/`6aad1afb`/`6d4d05f0`/`26ede65f`）均已清偿，见「已清偿」。剩余仅 P2（"已知但不阻塞"，不主动排期）：
 
-1. **`AsyncAgent._registry` 只增不删**（P1·5）：长会话轻微内存泄漏，需要 prune 已完成/已消费的任务和 completion。
-2. **`CancelledError` 不被后台 drainer 捕获**（P1·6）：Ctrl+C 时 `record_completion` 不触发，需要在后台任务的取消路径上补处理。
-3. **`SessionEnd` hooks 在 finally 块阻塞退出**（P1·7）：command hook 挂起可能锁住进程，需要超时/非阻塞化。
-4. **`resolve_hook_permission_decision` 不在 except 保护内**（P1·8）：`tool.check_permissions` 抛异常会崩整个 turn，需要异常边界。
+1. cursor+consumed 文件 TOCTOU 竞态
+2. tool_execution 多处 import 在 `except: pass` 内
+3. mock server 5xx = SDK 无限重试
 
-每修一条按「已清偿」条目的模式跑 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails`，多条一起改时补 `make dogfood`。
+当前没有已知的阻塞性问题。下一步工作转向阶段 4b 的「按需补覆盖」（不主动对齐全部 CLI flag，发现 bug 或做特征时再补 golden case）——参见「建议执行顺序（续）」的主线 B/支线。若之后再有代码审查发现新的问题，按同样的模式处理：每条修复配一个可复跑的回归测试（放在 canonical `tests/`，不要放 `hare/tests/`），过 spec-reviewer + code-quality-reviewer 两阶段审查，再跑 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails`，多条一起改时补 `make dogfood`。
