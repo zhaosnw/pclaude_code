@@ -149,71 +149,85 @@ async def run_tool_use(
     # A hook decision does not simply win: hook 'allow' still loses to a
     # settings deny/ask rule (resolveHookPermissionDecision). This resolver
     # already encoded that and had no caller.
+    #
+    # resolve_hook_permission_decision() calls can_use_tool() (and, through
+    # it, tool.check_permissions()) in several branches with no guard of its
+    # own, so a buggy/misconfigured tool can raise here. Mirroring the
+    # run_pre_tool_use_hooks guard above: a broken hook-permission resolution
+    # must not kill the turn either. On failure we treat it exactly like
+    # hook_permission was None to begin with — falling through to the normal
+    # rule-based permission flow below — rather than failing closed, for
+    # consistency with the sibling hook-execution guard.
     if hook_permission is not None:
         from hare.services.tools.tool_hooks import resolve_hook_permission_decision
 
-        resolved = await resolve_hook_permission_decision(
-            hook_permission,
-            tool,
-            tool_input,
-            tool_use_context,
-            can_use_tool,
-            assistant_message,
-            tool_use_id,
-        )
-        decision = resolved.get("decision") or {}
-        tool_input = resolved.get("input", tool_input)
-        # Every result on this path is a plain dict; getattr() would silently
-        # read the "allow" default and let a denied tool run.
-        behavior = (
-            decision.get("behavior", "allow")
-            if isinstance(decision, dict)
-            else getattr(decision, "behavior", "allow")
-        )
-        if behavior in ("deny", "ask"):
-            reason = (
-                decision.get("message", "Blocked by hook")
+        try:
+            resolved = await resolve_hook_permission_decision(
+                hook_permission,
+                tool,
+                tool_input,
+                tool_use_context,
+                can_use_tool,
+                assistant_message,
+                tool_use_id,
+            )
+            decision = resolved.get("decision") or {}
+            resolved_input = resolved.get("input", tool_input)
+            # Every result on this path is a plain dict; getattr() would silently
+            # read the "allow" default and let a denied tool run.
+            behavior = (
+                decision.get("behavior", "allow")
                 if isinstance(decision, dict)
-                else getattr(decision, "message", "Blocked by hook")
+                else getattr(decision, "behavior", "allow")
             )
-            # The released CLI reports a hook-blocked tool in permission_denials
-            # (2.1.87 did not). Denials are recorded by the engine's canUseTool
-            # wrapper, and this path skips it, so replay the decision through
-            # can_use_tool as a forced one purely to register it. The tool_result
-            # still carries the hook's own message.
-            if can_use_tool is not None:
-                try:
-                    await can_use_tool(
-                        tool,
-                        tool_input,
-                        tool_use_context,
-                        assistant_message,
-                        tool_use_id,
-                        behavior,
-                    )
-                except Exception:  # noqa: BLE001 - reporting must not block
-                    pass
-            yield MessageUpdateLazy(
-                message=create_user_message(
-                    content=[
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use_id,
-                            "content": reason,
-                            "is_error": True,
-                        }
-                    ],
-                    tool_use_result=reason,
-                    source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
-                )
-            )
-            return
-        # 'passthrough' means the hook made no decision — fall through to the
-        # normal permission check below.
-        if behavior == "allow":
-            hook_permission = decision
-        else:
+        except Exception:  # noqa: BLE001 - a broken hook-permission resolution must not kill the turn
             hook_permission = None
+        else:
+            tool_input = resolved_input
+            if behavior in ("deny", "ask"):
+                reason = (
+                    decision.get("message", "Blocked by hook")
+                    if isinstance(decision, dict)
+                    else getattr(decision, "message", "Blocked by hook")
+                )
+                # The released CLI reports a hook-blocked tool in permission_denials
+                # (2.1.87 did not). Denials are recorded by the engine's canUseTool
+                # wrapper, and this path skips it, so replay the decision through
+                # can_use_tool as a forced one purely to register it. The tool_result
+                # still carries the hook's own message.
+                if can_use_tool is not None:
+                    try:
+                        await can_use_tool(
+                            tool,
+                            tool_input,
+                            tool_use_context,
+                            assistant_message,
+                            tool_use_id,
+                            behavior,
+                        )
+                    except Exception:  # noqa: BLE001 - reporting must not block
+                        pass
+                yield MessageUpdateLazy(
+                    message=create_user_message(
+                        content=[
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_use_id,
+                                "content": reason,
+                                "is_error": True,
+                            }
+                        ],
+                        tool_use_result=reason,
+                        source_tool_assistant_uuid=getattr(assistant_message, "uuid", None),
+                    )
+                )
+                return
+            # 'passthrough' means the hook made no decision — fall through to the
+            # normal permission check below.
+            if behavior == "allow":
+                hook_permission = decision
+            else:
+                hook_permission = None
 
     # Permission check
     try:
