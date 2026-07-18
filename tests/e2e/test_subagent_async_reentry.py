@@ -576,3 +576,104 @@ def test_subagent_stop_hook_agent_id_matches_task_notification_id():
         f"launched agentId={launched_agent_id!r}, "
         f"task-notification task-id={notification_task_id!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Bug 5 — a background subagent task that is cancelled mid-flight (process
+# shutdown, explicit cancellation, etc.) must correctly propagate
+# CancelledError and leave the async-task registry in a clean state, not a
+# silently-lost or permanently-"pending" one.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+def test_cancelled_background_task_propagates_and_prunes_cleanly():
+    """agent_tool.py's `_run_background()` closure wraps the child engine's
+    message loop in `except Exception: pass` before calling
+    record_completion() unconditionally. asyncio.CancelledError is a
+    BaseException (not Exception, since Python 3.8), so cancelling this
+    background asyncio.Task must not be silently swallowed into a no-op —
+    task.cancelled() must end up True, and async_agent_tasks' registry must
+    not get stuck treating a cancelled task as pending forever (see that
+    module's _prune_done_tasks(), added alongside this fix).
+
+    Unlike the other tests in this file, this one doesn't use `_drive()`'s
+    scripted call_model (a fixed response list can't model "hang until
+    cancelled") — it drives `_AgentTool.call()` directly with a call_model
+    that blocks on an asyncio.Event so cancellation timing is deterministic,
+    reusing the same production_deps-patching approach `_drive()` uses."""
+    import hare.query.core as core
+    import hare.query.deps as deps
+    from hare.bootstrap.state import set_session_persistence_disabled
+    from hare.query.deps import QueryDeps
+    from hare.tool import ToolUseContext, ToolUseContextOptions
+    from hare.tools_impl.AgentTool import async_agent_tasks as aat
+    from hare.tools_impl.AgentTool.agent_tool import _AgentTool
+
+    started = asyncio.Event()
+
+    async def call_model(payload, *a, **k):
+        started.set()
+        await asyncio.Event().wait()  # hang until this task is cancelled
+        yield {}  # pragma: no cover - unreachable; keeps this an async generator
+
+    orig = deps.production_deps
+
+    def patched():
+        d = orig()
+        return QueryDeps(
+            call_model=call_model,
+            microcompact=d.microcompact,
+            autocompact=d.autocompact,
+            uuid=d.uuid,
+        )
+
+    deps.production_deps = patched
+    core.production_deps = patched
+    set_session_persistence_disabled(True)
+    aat.reset()
+
+    async def scenario() -> None:
+        tool = _AgentTool()
+        ctx = ToolUseContext(options=ToolUseContextOptions())
+        await tool.call(
+            {
+                "description": "bg",
+                "prompt": "do work",
+                "subagent_type": "general-purpose",
+                "run_in_background": True,
+            },
+            ctx,
+            None,
+            None,
+        )
+        assert len(aat._registry.tasks) == 1
+        task = aat._registry.tasks[0]
+
+        # Let the background task actually reach (and hang inside) the
+        # model call before we cancel it.
+        await asyncio.wait_for(started.wait(), timeout=5.0)
+        task.cancel()
+
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        assert task.cancelled(), (
+            "the background task must correctly report itself as cancelled, "
+            "not silently complete as if CancelledError were swallowed"
+        )
+        # A genuinely-cancelled run should not produce a <task-notification>
+        # for a parent that is (most likely) shutting down too.
+        assert aat._registry.completions == []
+        # Registry hygiene: the cancelled task must not be reported as
+        # pending forever, and must not be retained once observed done.
+        assert aat.has_pending() is False
+        assert aat._registry.tasks == []
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        deps.production_deps = orig
+        core.production_deps = orig
+        set_session_persistence_disabled(False)
+        aat.reset()
