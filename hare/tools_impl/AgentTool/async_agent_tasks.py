@@ -50,11 +50,33 @@ def record_completion(completion: AsyncAgentCompletion) -> None:
     _registry.completions.append(completion)
 
 
+def _prune_done_tasks() -> None:
+    """Drop finished asyncio.Tasks from the registry.
+
+    Once a task is done(), the Task object has nothing further to give the
+    registry: agent_tool.py's `_run_background()` already calls
+    record_completion() itself for every non-cancelled outcome (success or
+    failure — it wraps the whole run in `except Exception`) before its task
+    finishes, so that outcome is already sitting in `_registry.completions`.
+    A cancelled task intentionally does NOT record a completion (there is no
+    parent left to notify), but it is still `done()` and so has nothing left
+    to observe either.
+
+    Without this, `_registry.tasks` grows without bound over a long session
+    that dispatches many background subagents — holding a strong reference
+    to every finished Task (and transitively its result/exception) forever —
+    and every has_pending()/wait_for_next_completion() call does an
+    increasingly expensive linear scan over it. Called from both read paths
+    so neither can observe a stale, ever-growing list.
+    """
+    if any(t.done() for t in _registry.tasks):
+        _registry.tasks = [t for t in _registry.tasks if not t.done()]
+
+
 def has_pending() -> bool:
     """True if any background task is still running or a completion is queued."""
-    return bool(_registry.completions) or any(
-        not t.done() for t in _registry.tasks
-    )
+    _prune_done_tasks()
+    return bool(_registry.completions) or bool(_registry.tasks)
 
 
 def drain_completions() -> list[AsyncAgentCompletion]:
@@ -71,7 +93,8 @@ async def wait_for_next_completion(timeout: float = 30.0) -> Optional[AsyncAgent
     nothing else to do — the print-mode equivalent of the release waiting on
     its task-notification queue.
     """
-    running = [t for t in _registry.tasks if not t.done()]
+    _prune_done_tasks()
+    running = list(_registry.tasks)
     if _registry.completions:
         return _registry.completions.pop(0)
     if not running:
@@ -80,6 +103,7 @@ async def wait_for_next_completion(timeout: float = 30.0) -> Optional[AsyncAgent
         await asyncio.wait(running, timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
     except Exception:  # noqa: BLE001
         pass
+    _prune_done_tasks()
     if _registry.completions:
         return _registry.completions.pop(0)
     return None

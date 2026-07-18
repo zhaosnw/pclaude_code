@@ -302,6 +302,31 @@ class _AgentTool(ToolBase):
                                         if isinstance(b, dict)
                                         and b.get("type") == "tool_use"
                                     )
+                    except asyncio.CancelledError:
+                        # This background task itself was cancelled (process
+                        # shutdown, explicit cancellation of registered
+                        # tasks, etc.). Deliberately do NOT call
+                        # record_completion() here: the parent loop that
+                        # would consume a <task-notification> for this run
+                        # is going away too (or, at minimum, there is no
+                        # cooperative way to deliver one mid-cancellation),
+                        # so there is nothing useful to notify. The registry
+                        # itself stays consistent without it — a cancelled
+                        # task is done() the moment cancellation completes,
+                        # and async_agent_tasks._prune_done_tasks() (run from
+                        # has_pending()/wait_for_next_completion()) drops it
+                        # on the next read regardless of whether a
+                        # completion was ever recorded for it.
+                        #
+                        # Re-raise so this asyncio.Task correctly reports
+                        # itself as cancelled (task.cancelled() is True).
+                        # CancelledError is a BaseException, not an Exception
+                        # (since Python 3.8), so it is never caught by the
+                        # `except Exception` below — but swallowing it here
+                        # would still be wrong: it would make the task look
+                        # like it completed normally, breaking cooperative
+                        # cancellation for anything awaiting/gathering it.
+                        raise
                     except Exception:  # noqa: BLE001 - background failure is non-fatal
                         pass
                     record_completion(
