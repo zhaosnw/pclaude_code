@@ -8,6 +8,27 @@ import os
 from typing import Any
 
 
+async def _kill_orphaned_process(proc: "asyncio.subprocess.Process") -> None:
+    """Terminate and reap a subprocess whose ``communicate()`` was abandoned.
+
+    ``asyncio.wait_for()`` timing out — or the task awaiting it being
+    cancelled — only stops *awaiting* ``proc.communicate()``; it does not
+    touch the subprocess itself. Left alone, that subprocess keeps running
+    as an orphan, holding fds/CPU/children indefinitely. Killing without
+    reaping would also leave a zombie, so we ``wait()`` after the kill.
+    """
+    if proc.returncode is not None:
+        return
+    try:
+        proc.kill()
+    except ProcessLookupError:
+        return
+    try:
+        await proc.wait()
+    except ProcessLookupError:
+        pass
+
+
 async def exec_hook(
     command: str,
     *,
@@ -48,10 +69,22 @@ async def exec_hook(
             stdin=stdin_pipe,
         )
 
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(input=stdin_bytes),
-            timeout=timeout,
-        )
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=stdin_bytes),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            await _kill_orphaned_process(proc)
+            return {"success": False, "error": "Hook timed out", "exit_code": 124}
+        except asyncio.CancelledError:
+            # The task awaiting us was cancelled (e.g. a caller-side timeout
+            # further up the stack, such as the print-mode exit path bounding
+            # SessionEnd hooks). Clean up before letting cancellation
+            # propagate — swallowing it here would break asyncio's
+            # cancellation bookkeeping.
+            await _kill_orphaned_process(proc)
+            raise
 
         return {
             "success": proc.returncode == 0,
@@ -59,7 +92,7 @@ async def exec_hook(
             "stderr": stderr.decode("utf-8", errors="replace") if stderr else "",
             "exit_code": proc.returncode or 0,
         }
-    except asyncio.TimeoutError:
-        return {"success": False, "error": "Hook timed out", "exit_code": 124}
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         return {"success": False, "error": str(e), "exit_code": 1}

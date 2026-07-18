@@ -29,6 +29,13 @@ from hare.utils.hooks.hook_helpers import (
 # Default timeout for hook execution (10 minutes, matching TS)
 TOOL_HOOK_EXECUTION_TIMEOUT_MS = 600_000
 
+# Bound for SessionEnd hooks fired from a process-exit teardown path (main.py's
+# print-mode `finally` block), not this module's own default. A user isn't
+# actively waiting on a SessionEnd hook the way they wait mid-turn on e.g.
+# PreToolUse, so a single hanging/misconfigured SessionEnd hook must not hold
+# up process exit for the full TOOL_HOOK_EXECUTION_TIMEOUT_MS (10 minutes).
+SESSION_END_EXIT_HOOK_TIMEOUT_MS = 5_000
+
 
 @dataclass
 class HookBlockingError:
@@ -354,11 +361,28 @@ async def execute_session_start_hooks(
 async def execute_session_end_hooks(
     reason: str = "exit",
     tool_use_context: Any = None,
+    timeout_sec: float | None = None,
 ) -> list[dict[str, Any]]:
-    """SessionEnd hooks (hooks.ts:4113)."""
-    return await _run_simple_event_hooks(
-        "SessionEnd", {"reason": reason}, tool_use_context
-    )
+    """SessionEnd hooks (hooks.ts:4113).
+
+    ``timeout_sec``, when given, bounds the ENTIRE call (all matching hooks,
+    running concurrently) rather than any individual hook's own timeout.
+    Callers on a process-exit path (main.py's print-mode ``finally`` block)
+    pass a short bound — see ``SESSION_END_EXIT_HOOK_TIMEOUT_MS`` — so a
+    single hanging/misconfigured SessionEnd hook can't hold up process exit.
+    Hooks still running past the bound are cancelled and abandoned; their
+    results are dropped rather than awaited.
+
+    Omitting it (the default) preserves prior behavior: hooks run to
+    completion, or to their own per-hook TOOL_HOOK_EXECUTION_TIMEOUT_MS.
+    """
+    coro = _run_simple_event_hooks("SessionEnd", {"reason": reason}, tool_use_context)
+    if timeout_sec is None:
+        return await coro
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout_sec)
+    except asyncio.TimeoutError:
+        return []
 
 
 async def execute_user_prompt_submit_hooks(

@@ -694,9 +694,20 @@ async def _run_print_mode(
     finally:
         # SessionEnd fires as the run tears down (hooks.ts:4113); hare never
         # emitted it, so a SessionEnd hook in settings was inert.
-        from hare.utils.hooks import execute_session_end_hooks
+        #
+        # This finally block sits directly in the process-exit path — a user
+        # isn't actively waiting on a SessionEnd hook the way they wait
+        # mid-turn on e.g. PreToolUse, so a hanging/misconfigured hook here
+        # must not be able to block `-p` from ever exiting. Bound the whole
+        # call rather than using the (10-minute) per-hook default.
+        from hare.utils.hooks import (
+            SESSION_END_EXIT_HOOK_TIMEOUT_MS,
+            execute_session_end_hooks,
+        )
 
-        await execute_session_end_hooks(reason="exit")
+        await execute_session_end_hooks(
+            reason="exit", timeout_sec=SESSION_END_EXIT_HOOK_TIMEOUT_MS / 1000.0
+        )
         await client.close()
     if exit_code:
         sys.exit(exit_code)
