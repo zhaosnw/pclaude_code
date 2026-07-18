@@ -8,7 +8,7 @@ import os
 from typing import Any
 
 
-async def _kill_orphaned_process(proc: "asyncio.subprocess.Process") -> None:
+async def _kill_orphaned_process(proc: asyncio.subprocess.Process) -> None:
     """Terminate and reap a subprocess whose ``communicate()`` was abandoned.
 
     ``asyncio.wait_for()`` timing out — or the task awaiting it being
@@ -16,12 +16,17 @@ async def _kill_orphaned_process(proc: "asyncio.subprocess.Process") -> None:
     touch the subprocess itself. Left alone, that subprocess keeps running
     as an orphan, holding fds/CPU/children indefinitely. Killing without
     reaping would also leave a zombie, so we ``wait()`` after the kill.
+
+    Best-effort: a failed kill()/wait() must not raise here and mask a
+    pending CancelledError the caller is already propagating.
     """
     if proc.returncode is not None:
         return
     try:
         proc.kill()
     except ProcessLookupError:
+        return
+    except OSError:
         return
     try:
         await proc.wait()
