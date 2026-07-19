@@ -156,7 +156,15 @@ def make_server(fixture_path: str | Path, port: int = 0) -> ThreadingHTTPServer:
                         request = {}
                     selection = select_response(responses, request, consumed)
                     if selection is None:
-                        self.send_error(500, "no fixture response matched request")
+                        # 400, not 500: the official Anthropic SDK's
+                        # shouldRetry() retries on 408/409/429/>=500 (with
+                        # backoff, default maxRetries=2). A fixture-author
+                        # error — no response in the fixture matches this
+                        # request — isn't a transient server hiccup, so a
+                        # 5xx here used to make the SDK burn through its
+                        # retry budget before the caller ever saw this
+                        # message, surfacing as an opaque timeout instead.
+                        self.send_error(400, "no fixture response matched request")
                         return
                     idx, resp = selection
                     if resp.get("once"):
@@ -164,7 +172,9 @@ def make_server(fixture_path: str | Path, port: int = 0) -> ThreadingHTTPServer:
                 else:
                     i = cursor["i"]
                     if i >= len(responses):
-                        self.send_error(500, "fixture exhausted")
+                        # Same reasoning as above: fixture exhaustion is a
+                        # fixture-author bug, not a retryable server error.
+                        self.send_error(400, "fixture exhausted")
                         return
                     cursor["i"] = i + 1
                     resp = responses[i]
