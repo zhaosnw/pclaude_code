@@ -15,8 +15,47 @@ execution.
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable
+from typing import Any, AsyncGenerator, Callable, Iterator
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - POSIX-only; Windows falls back to no locking
+    fcntl = None  # type: ignore[assignment]
+
+
+@contextmanager
+def _cross_process_lock(lock_path: str) -> Iterator[None]:
+    """Serialize a read-modify-write cycle against ``lock_path`` across processes.
+
+    ``cursor_path``/``consumed_path`` below are read-modify-write shared state
+    files, deliberately designed (see ``fixture_call_model``'s docstring) to
+    be read and written by more than one ``python -m hare`` invocation replaying
+    the same fixture. Without a lock, two invocations can both read the same
+    cursor/consumed value, both decide independently, and the second write
+    clobbers the first — serving a "once" response twice, or replaying the
+    same cursor index. ``fcntl.flock`` is POSIX-only; best-effort elsewhere
+    since this is test/replay infrastructure, not shipped runtime code.
+    """
+    if fcntl is None:  # pragma: no cover - not exercised on POSIX CI
+        # mypy's typeshed stub for `fcntl` is gated on sys.platform != "win32",
+        # so on this (POSIX) type-checking machine it treats the module as
+        # always importable and flags this branch unreachable. It is real at
+        # runtime on Windows, where `import fcntl` raises ImportError.
+        yield  # type: ignore[unreachable]
+        return
+    with open(lock_path, "a", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _noop_lock() -> Iterator[None]:
+    yield
 
 
 def load_fixture(path: str | Path) -> dict[str, Any]:
@@ -67,6 +106,23 @@ def fixture_call_model(
         except OSError:
             pass
 
+    def _claim_next_index() -> int:
+        # Locked so two invocations replaying the same fixture (a
+        # background subagent's own call_model and its parent, both bound
+        # to the same cursor_path) can't both read index i, both decide to
+        # serve responses[i], and race to write i+1 — losing a response or
+        # replaying one twice. No-op wrapper when cursor_path is unset
+        # (single in-process closure, no shared file to race over).
+        with _cross_process_lock(f"{cursor_path}.lock") if cursor_path else _noop_lock():
+            i = _read_index()
+            if i >= len(responses):
+                raise AssertionError(
+                    f"fixture exhausted: model called {i + 1} times but "
+                    f"fixture only has {len(responses)} responses"
+                )
+            _write_index(i + 1)
+            return i
+
     content_matched = fixture.get("kind") == "content-matched"
 
     def _select_by_content(payload: Any) -> dict[str, Any]:
@@ -74,33 +130,37 @@ def fixture_call_model(
         # so a concurrent/async flow (parent + subagent drawing from one
         # fixture) is deterministic instead of order-dependent. Consumed
         # "once" responses are tracked next to the shared cursor file so a
-        # child engine and its parent agree on what has been served.
+        # child engine and its parent agree on what has been served. Locked
+        # for the same reason as _claim_next_index: read-consumed, decide,
+        # write-consumed must be atomic across processes sharing this file,
+        # or a "once" response can be served twice.
         import os
 
         from scripts.fixture_matching import select_response
 
-        consumed: set[int] = set()
         consumed_path = f"{cursor_path}.consumed" if cursor_path else None
-        if consumed_path and os.path.exists(consumed_path):
-            try:
-                with open(consumed_path, encoding="utf-8") as handle:
-                    consumed = {int(x) for x in handle.read().split() if x.strip()}
-            except (OSError, ValueError):
-                consumed = set()
-        selection = select_response(
-            responses, payload if isinstance(payload, dict) else {}, consumed
-        )
-        if selection is None:
-            raise AssertionError("no fixture response matched the request")
-        idx, resp = selection
-        if resp.get("once") and consumed_path:
-            consumed.add(idx)
-            try:
-                with open(consumed_path, "w", encoding="utf-8") as handle:
-                    handle.write(" ".join(str(x) for x in sorted(consumed)))
-            except OSError:
-                pass
-        return resp
+        with _cross_process_lock(f"{consumed_path}.lock") if consumed_path else _noop_lock():
+            consumed: set[int] = set()
+            if consumed_path and os.path.exists(consumed_path):
+                try:
+                    with open(consumed_path, encoding="utf-8") as handle:
+                        consumed = {int(x) for x in handle.read().split() if x.strip()}
+                except (OSError, ValueError):
+                    consumed = set()
+            selection = select_response(
+                responses, payload if isinstance(payload, dict) else {}, consumed
+            )
+            if selection is None:
+                raise AssertionError("no fixture response matched the request")
+            idx, resp = selection
+            if resp.get("once") and consumed_path:
+                consumed.add(idx)
+                try:
+                    with open(consumed_path, "w", encoding="utf-8") as handle:
+                        handle.write(" ".join(str(x) for x in sorted(consumed)))
+                except OSError:
+                    pass
+            return resp
 
     def call_model(*_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         async def _gen() -> AsyncGenerator[Any, None]:
@@ -108,13 +168,7 @@ def fixture_call_model(
                 payload = _args[0] if _args else _kwargs.get("payload", {})
                 r = _select_by_content(payload)
             else:
-                i = _read_index()
-                if i >= len(responses):
-                    raise AssertionError(
-                        f"fixture exhausted: model called {i + 1} times but "
-                        f"fixture only has {len(responses)} responses"
-                    )
-                _write_index(i + 1)
+                i = _claim_next_index()
                 r = responses[i]
             usage = r.get("usage", {"input_tokens": 0, "output_tokens": 0})
             stop_reason = r.get("stop_reason", "end_turn")
