@@ -499,6 +499,10 @@ class QueryEngine:
         )
 
         def _budget_exhausted() -> bool:
+            # The `<= 0` (not `< 0`) matters: query/core.py's own max_turns
+            # check (`params.max_turns and next_turn_count > params.max_turns`)
+            # treats max_turns=0 as falsy, i.e. "unlimited". This guard is what
+            # keeps a fully-exhausted budget from ever reaching that call as 0.
             return remaining_turns is not None and remaining_turns <= 0
 
         while (
