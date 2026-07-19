@@ -9,6 +9,7 @@ Implements the core tool execution loop: lookup → validate → permission chec
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Callable, Optional, Union
@@ -17,6 +18,8 @@ from hare.utils.messages import create_user_message
 from hare.tool import find_tool_by_name
 
 McpServerType = Optional[str]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -143,6 +146,14 @@ async def run_tool_use(
                 updated = hook_result.get("updatedInput")
                 if isinstance(updated, dict):
                     tool_input = updated
+    except ImportError:
+        # Distinct from the runtime-failure catch below: an ImportError here
+        # means our own wiring is broken (a rename/refactor of tool_hooks),
+        # not that some external hook misbehaved. Still must not kill the
+        # turn, but it must not look identical to an ordinary hook failure
+        # either — log it so a broken import doesn't stay invisible.
+        logger.error("PreToolUse hook import failed; hooks disabled for this call", exc_info=True)
+        hook_permission = None
     except Exception:  # noqa: BLE001 - a broken hook must not kill the turn
         hook_permission = None
 
@@ -159,9 +170,9 @@ async def run_tool_use(
     # rule-based permission flow below — rather than failing closed, for
     # consistency with the sibling hook-execution guard.
     if hook_permission is not None:
-        from hare.services.tools.tool_hooks import resolve_hook_permission_decision
-
         try:
+            from hare.services.tools.tool_hooks import resolve_hook_permission_decision
+
             resolved = await resolve_hook_permission_decision(
                 hook_permission,
                 tool,
@@ -180,6 +191,12 @@ async def run_tool_use(
                 if isinstance(decision, dict)
                 else getattr(decision, "behavior", "allow")
             )
+        except ImportError:
+            logger.error(
+                "resolve_hook_permission_decision import failed; hook permission disabled for this call",
+                exc_info=True,
+            )
+            hook_permission = None
         except Exception:  # noqa: BLE001 - a broken hook-permission resolution must not kill the turn
             hook_permission = None
         else:
@@ -347,6 +364,11 @@ async def run_tool_use(
                 hook_message = hook_result.get("message")
                 if hook_message is not None:
                     yield MessageUpdateLazy(message=hook_message)
+        except ImportError:
+            logger.error(
+                "PostToolUse/PostToolUseFailure hook import failed; hooks disabled for this call",
+                exc_info=True,
+            )
         except Exception:  # noqa: BLE001 - a broken hook must not fail the tool
             pass
 
@@ -384,6 +406,11 @@ async def run_tool_use(
                 hook_message = hook_result.get("message")
                 if hook_message is not None:
                     yield MessageUpdateLazy(message=hook_message)
+        except ImportError:
+            logger.error(
+                "PostToolUseFailure hook import failed; hooks disabled for this call",
+                exc_info=True,
+            )
         except Exception:  # noqa: BLE001 - a broken hook must not mask the error
             pass
 
