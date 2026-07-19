@@ -38,6 +38,8 @@ ALIGNED_EVIDENCE = {
     "cli.--resume": "session.resume_basic",
     "cli.--permission-mode": "permission.mode_bypass",
     "cli.--mcp-config": "mcp.stdio_tool_call",
+    "cli.--allowed-tools": "permission.allowed_tools_bash",
+    "cli.--disallowed-tools": "permission.disallowed_tools_write",
     "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
     "hook.PostToolUse": "hooks.posttool_output",
     "hook.Stop": "hooks.stop_hook",

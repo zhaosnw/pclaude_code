@@ -14,20 +14,20 @@
 ### 验证基线
 
 ```bash
-python -m pytest tests/e2e -q              # 92 passed, 1 xfailed
-python -m pytest tests/ -q                 # 2900 passed, 12 skipped, 1 xfailed
+python -m pytest tests/e2e -q              # 94 passed, 1 xfailed
+python -m pytest tests/ -q                 # 2902 passed, 12 skipped, 1 xfailed
 make mypy-regression                       # PASS (497)
 make alignment-guardrails                  # 16 passed
 make dogfood                               # 5/5 passed
-make parity-matrix                         # passed (206 rows, 25 aligned)
+make parity-matrix                         # passed (206 rows, 27 aligned)
 ```
 
 ### 对齐覆盖
 
-- **62 个 golden case**，覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
-- **64 个已录制 case**（2 个删掉的退化和 2 个录好但被记录分歧，合计 64）
+- **64 个 golden case**（含 2026-07-19 新增的 `permission.allowed_tools_bash`、`permission.disallowed_tools_write`），覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
+- **66 个已录制 case**（2 个删掉的退化和 2 个录好但被记录分歧，合计 66）
 - **1 个 registered divergence**（known_divergence）：`subagent.async_dispatch`（num_turns 差 1）
-- **parity matrix 206 行，5 维度**：CLI(117) + tool(44) + hook(27) + settings(8) + behavior(10)；25 项 `aligned`
+- **parity matrix 206 行，5 维度**：CLI(117) + tool(44) + hook(27) + settings(8) + behavior(10)；27 项 `aligned`
 
 ### Oracle
 
@@ -40,7 +40,7 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 |---|---|---|
 | CLI flags（`-p` 管道、`--resume`/`--continue`、`--permission-mode`、`--mcp-config`、`--settings`、`--max-turns`） | ✅ 1 xfailed | 12 |
 | session persistence | ✅ | 4 |
-| permission modes × settings（allow / deny / bypass / 优先级 / 重定向） | ✅ | 7 |
+| permission modes × settings（allow / deny / bypass / 优先级 / 重定向 / `--allowed-tools` / `--disallowed-tools`） | ✅ | 9 |
 | hooks（工具/会话/压缩生命周期全部 10 个 P1 事件） | ✅ | 8 |
 | MCP（配置错误、stdio tool call） | ✅ | 2 |
 | tools（Bash / Read / Write / Edit / MultiEdit / Glob / Grep / LS / TodoWrite） | ✅ | 17 |
@@ -100,11 +100,11 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 
 ## 阶段 4b：剩余覆盖（建议优先级）
 
-当前 181 项 `implemented-unverified` 的分布：
+当前 179 项 `implemented-unverified` 的分布（2026-07-19：`cli.--allowed-tools`、`cli.--disallowed-tools` 已用 `permission.allowed_tools_bash`/`permission.disallowed_tools_write` 两个新 golden case 转为 `aligned`，181→179）：
 
 | 维度 | 未验证 | 大项 |
 |---|---|---|
-| CLI | 115 | 大部分是 P1 flag，code agent 主链路不依赖 |
+| CLI | 113 | 大部分是 P1 flag，code agent 主链路不依赖 |
 | tool | 36 | MoveTool、PowerShellTool 等非核心工具 |
 | hook | 18 | 17 个 P2 事件（UI/遥测/任务管理、不触发） |
 | settings | 5 | env、model 等 |
@@ -113,7 +113,7 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 建议优先级：
 
 1. **`chat.whitespace_result` / `chat.empty_text` 已删除，无需再补**。
-2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。示例高价值：`--allowed-tools`/`--disallowed-tools`（已有探针结果）、`--model`（验证 flag 穿透到模型）、`--output-format stream-json` + 输入侧。
+2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。~~`--allowed-tools`/`--disallowed-tools`（已有探针结果）~~ ✅ 2026-07-19 已补齐（见阶段 5）。剩余示例高价值：`--model`（验证 flag 穿透到模型）、`--output-format stream-json` + 输入侧。
 3. **P2 hooks 整体跳过**，直到有人报告差异。
 4. **Tool schema 字段对齐**——当前只覆盖了工具名，没覆盖 input schema 的字段级对比。
 
@@ -178,6 +178,14 @@ make parity-matrix                         # passed (206 rows, 25 aligned)
 - **mock server 5xx = SDK 无限重试**（`scripts/mock_anthropic_server.py`）：官方 Anthropic SDK 的 `shouldRetry()`（`recovered-from-cli-js-map/node_modules/@anthropic-ai/sdk/client.js`）对 408/409/429/>=500 一律重试（默认 `maxRetries=2`，指数退避）。"没有 fixture 响应匹配这个请求"和"fixture 已耗尽"都是 fixture 作者的配置错误，不是瞬时故障，之前用 `send_error(500, ...)` 上报会让 SDK 先烧掉重试预算再失败，调用方看到的是一个不透明的超时/网络错误而非直观的错误信息。改为 `send_error(400, ...)`（不在 SDK 重试白名单内）。回归测试 `tests/test_mock_anthropic_server.py` 新增两个用例，分别验证"无匹配"和"fixture 耗尽"两条路径返回的状态码都不是 SDK 会重试的那几个。
 
 三条改动跑过完整验证门禁（`tests/` 2894→2900，新增 6 个回归测试；`tests/e2e` 92 passed 不变；`make mypy-regression` 497/497 持平；`make alignment-guardrails` 16 passed；`make parity-matrix --check` 通过；`python scripts/detect_stubs.py` 未超限；`make dogfood` 5/5），无回归。
+
+**2026-07-19 阶段 4b：`--allowed-tools`/`--disallowed-tools` 补齐为 `aligned`：**
+
+- 两个 CLI flag 在 parity matrix 里此前是 `implemented-unverified`——doc 阶段 4b 里标了"已有探针结果"（`tests/test_permission_context_cli.py` 三个单测直接调用 `has_permissions_to_use_tool()`/`load_permission_context()` 验证了底层规则匹配逻辑），但没有真正跑过 CLI 全链路、也没有 TS oracle 差分证据。补了两个 golden case：`permission.disallowed_tools_write`（`--disallowed-tools Write` + 一个尝试写文件的 fixture）、`permission.allowed_tools_bash`（`--allowed-tools Bash` + 一个 echo fixture）,都用 `.oracle/claude-2.1.209` 实录，hare 与参考实现逐字节匹配。
+- 排查过程中确认了一个之前没有验证过的行为点，**不是 bug，是正确对齐**：`hare/tools/__init__.py::get_tools()` 对 deny 规则命中的工具是从 tool pool 里整个摘除（不是留在 pool 里等调用时再拒绝），这与 `recovered-from-cli-js-map/src/tools.ts::filterToolsByDenyRules()` 的显式设计注释一致（"before the model sees them — not just at call time"）——`disallowed_tools_write` case 的 oracle 录制结果与 hare 完全一致（`permission_denials: []`，因为工具从一开始就不在候选里，不是运行时被拒），确认这是参考实现本身的行为，不是需要修的 divergence。
+- `check_files: true` 给 `disallowed_tools_write` 提供了真实执行证据（原则 8）：录制的 golden 文件快照为空列表，证明 Write 工具确实一次都没跑起来，而不是"文本恰好没提写入"这种弱证据。
+- `scripts/gen_parity_matrix.py`：`ALIGNED_EVIDENCE` 手工映射表新增 `cli.--allowed-tools`→`permission.allowed_tools_bash`、`cli.--disallowed-tools`→`permission.disallowed_tools_write` 两条，`make parity-matrix --check` 通过。`cli.--disallowed`（无 `-tools` 后缀）确认是生成脚本对 TS 源码做正则提取时的伪影，源码里不存在这个真实 flag，未处理。
+- 验证：`tests/e2e` 92→94 passed；`tests/` 2900→2902；`make mypy-regression`/`alignment-guardrails`/`parity-matrix --check`/`detect_stubs`/`dogfood` 全过。parity matrix：181→179 项 `implemented-unverified`，25→27 项 `aligned`。
 
 ### 待修（来自 2026-07-16 代码审查，按优先级）
 

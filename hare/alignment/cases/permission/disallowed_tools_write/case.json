@@ -1,0 +1,10 @@
+{
+  "case_id": "permission.disallowed_tools_write",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "write a file", "--output-format", "json", "--disallowed-tools", "Write"]
+  },
+  "fixture": "hare/alignment/fixtures/tool_write_file.json",
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "golden_source": "ts-reference", "check_files": true}
+}

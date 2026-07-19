@@ -1,0 +1,10 @@
+{
+  "case_id": "permission.allowed_tools_bash",
+  "priority": "P1",
+  "entrypoint": {
+    "argv": ["-p", "run the echo", "--output-format", "json", "--allowed-tools", "Bash"]
+  },
+  "fixture": "hare/alignment/fixtures/tool_bash_allow_echo.json",
+  "expected": {"exit_code": 0, "stdout_kind": "json"},
+  "policy": {"match": "json_structural", "golden_source": "ts-reference"}
+}
