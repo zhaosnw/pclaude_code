@@ -1,0 +1,24 @@
+{
+  "case_id": "cli.input_format_stream_json",
+  "priority": "P0",
+  "entrypoint": {
+    "argv": [
+      "-p",
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--verbose"
+    ],
+    "stdin": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"say hello\"},\"parent_tool_use_id\":null,\"session_id\":\"\"}\n"
+  },
+  "fixture": "hare/alignment/fixtures/single_turn_hello.json",
+  "expected": {
+    "exit_code": 0,
+    "stdout_kind": "ndjson"
+  },
+  "policy": {
+    "match": "json_structural",
+    "golden_source": "ts-reference"
+  }
+}

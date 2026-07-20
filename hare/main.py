@@ -11,10 +11,12 @@ Python port, we use argparse and a simple REPL loop.
 from __future__ import annotations
 
 import argparse
+import asyncio
+import json
 import os
 import sys
 import warnings
-from typing import Any, Optional
+from typing import Any, AsyncIterable, AsyncIterator, Optional, TextIO
 from uuid import uuid4
 
 # Suppress pydantic serializer warnings
@@ -191,6 +193,12 @@ async def cli_main(args: list[str] | None = None) -> None:
         help="Output format for print mode",
     )
     parser.add_argument(
+        "--input-format",
+        default=None,
+        choices=["text", "stream-json"],
+        help="Input format for print mode",
+    )
+    parser.add_argument(
         "--allowed-tools", default=None, help="Comma-separated list of tools to allow"
     )
     parser.add_argument(
@@ -273,6 +281,14 @@ async def cli_main(args: list[str] | None = None) -> None:
 
     register_settings_hooks(cwd, settings_file=parsed.settings)
 
+    output_format = parsed.output_format or "text"
+    if parsed.input_format == "stream-json" and output_format != "stream-json":
+        print(
+            "Error: --input-format=stream-json requires output-format=stream-json.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Resolve the prompt and mode. Sources, in order: -p/--print value, a
     # positional prompt, or — when stdin is piped (not a TTY) — stdin itself
     # (Claude Code reads stdin as the prompt for `echo "..." | claude`). An
@@ -280,14 +296,18 @@ async def cli_main(args: list[str] | None = None) -> None:
     # Resolved BEFORE the resume branch so `-p "x" --resume/--continue` can run
     # headlessly against the restored conversation instead of dropping to a REPL.
     if parsed.print_mode is not None:
-        prompt: Optional[str] = parsed.print_mode
+        prompt: Optional[str | list[Any]] = parsed.print_mode
     elif parsed.prompt:
         prompt = " ".join(parsed.prompt)
     else:
         prompt = None
 
     stdin_piped = not sys.stdin.isatty()
-    if (prompt is None or not prompt.strip()) and stdin_piped:
+    prompt_stream: AsyncIterable[str | list[Any]] | None = None
+    if parsed.input_format == "stream-json":
+        prompt = None
+        prompt_stream = _iter_stream_json_input(sys.stdin)
+    elif _prompt_is_empty(prompt) and stdin_piped:
         try:
             stdin_text = sys.stdin.read()
         except Exception:
@@ -296,9 +316,11 @@ async def cli_main(args: list[str] | None = None) -> None:
             prompt = stdin_text
 
     non_interactive = (
-        parsed.print_mode is not None or bool(parsed.prompt) or stdin_piped
+        parsed.print_mode is not None
+        or bool(parsed.prompt)
+        or stdin_piped
+        or parsed.input_format == "stream-json"
     )
-    output_format = parsed.output_format or "text"
 
     if non_interactive:
         set_is_non_interactive_session(True)
@@ -312,9 +334,9 @@ async def cli_main(args: list[str] | None = None) -> None:
 
     # --- Resume / continue path ---
     if parsed.continue_session or parsed.resume:
-        resume_prompt: Optional[str] = None
+        resume_prompt: Optional[str | list[Any]] = None
         if non_interactive:
-            if prompt is None or not prompt.strip():
+            if parsed.input_format != "stream-json" and _prompt_is_empty(prompt):
                 print(_empty_prompt_msg, file=sys.stderr)
                 sys.exit(1)
             resume_prompt = prompt
@@ -328,6 +350,7 @@ async def cli_main(args: list[str] | None = None) -> None:
             append_system_prompt=parsed.append_system_prompt,
             non_interactive=non_interactive,
             print_prompt=resume_prompt,
+            print_prompt_stream=prompt_stream,
             output_format=output_format,
             permission_context=permission_context,
         )
@@ -335,11 +358,12 @@ async def cli_main(args: list[str] | None = None) -> None:
 
     if non_interactive:
         # Non-interactive (print) mode — aligns with print path in src/main.tsx
-        if prompt is None or not prompt.strip():
+        if parsed.input_format != "stream-json" and _prompt_is_empty(prompt):
             print(_empty_prompt_msg, file=sys.stderr)
             sys.exit(1)
         await _run_print_mode(
             prompt=prompt,
+            prompt_stream=prompt_stream,
             model=parsed.model,
             max_turns=parsed.max_turns,
             verbose=parsed.verbose,
@@ -369,7 +393,8 @@ async def _resume_existing_session(
     system_prompt: str | None = None,
     append_system_prompt: str | None = None,
     non_interactive: bool = False,
-    print_prompt: str | None = None,
+    print_prompt: str | list[Any] | None = None,
+    print_prompt_stream: AsyncIterable[str | list[Any]] | None = None,
     output_format: str = "text",
     permission_context: Any = None,
 ) -> None:
@@ -511,10 +536,23 @@ async def _resume_existing_session(
     # the restored conversation and emit in the requested format, then exit — do
     # NOT print interactive banners (they would corrupt json/stream-json stdout)
     # or drop into the REPL.
-    if non_interactive and print_prompt is not None:
-        exit_code = await _emit_print_stream(
-            engine.submit_message(print_prompt), output_format
-        )
+    if non_interactive and (print_prompt is not None or print_prompt_stream is not None):
+        exit_code = 0
+        try:
+            async for index, current_prompt in _iterate_print_prompts(
+                print_prompt, print_prompt_stream
+            ):
+                exit_code = max(
+                    exit_code,
+                    await _emit_print_stream(
+                        engine.submit_message(current_prompt),
+                        output_format,
+                        suppress_init=index > 0,
+                    ),
+                )
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            exit_code = 1
         if exit_code:
             sys.exit(exit_code)
         return
@@ -614,7 +652,12 @@ def _align_result_schema(result: dict[str, Any]) -> dict[str, Any]:
     return r
 
 
-async def _emit_print_stream(stream: Any, output_format: str = "text") -> int:
+async def _emit_print_stream(
+    stream: Any,
+    output_format: str = "text",
+    *,
+    suppress_init: bool = False,
+) -> int:
     """Render a model-message stream (from QueryEngine.submit_message or the SDK
     HareClient.stream, which share the same event shape) to stdout in the given
     print output format. Returns the process exit code (1 on an error result).
@@ -644,6 +687,12 @@ async def _emit_print_stream(stream: Any, output_format: str = "text") -> int:
             # (Claude Code default suppresses them); emit message-level events only.
             if msg.get("type") == "stream_event":
                 continue
+            if (
+                suppress_init
+                and msg.get("type") == "system"
+                and msg.get("subtype") == "init"
+            ):
+                continue
             print_ndjson(_align_result_schema(_to_jsonable(msg)))
             if msg.get("type") == "result" and msg.get("is_error"):
                 exit_code = 1
@@ -656,7 +705,8 @@ async def _emit_print_stream(stream: Any, output_format: str = "text") -> int:
 
 
 async def _run_print_mode(
-    prompt: str,
+    prompt: str | list[Any] | None,
+    prompt_stream: AsyncIterable[str | list[Any]] | None = None,
     model: Optional[str] = None,
     max_turns: Optional[int] = None,
     verbose: bool = False,
@@ -690,7 +740,22 @@ async def _run_print_mode(
         )
     )
     try:
-        exit_code = await _emit_print_stream(client.stream(prompt), output_format)
+        exit_code = 0
+        try:
+            async for index, current_prompt in _iterate_print_prompts(
+                prompt, prompt_stream
+            ):
+                exit_code = max(
+                    exit_code,
+                    await _emit_print_stream(
+                        client.stream(current_prompt),
+                        output_format,
+                        suppress_init=index > 0,
+                    ),
+                )
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            exit_code = 1
     finally:
         # SessionEnd fires as the run tears down (hooks.ts:4113); hare never
         # emitted it, so a SessionEnd hook in settings was inert.
@@ -903,3 +968,94 @@ def _split_cli_rules(value: str | None) -> list[str]:
     if not value:
         return []
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _parse_stream_json_input(data: str) -> list[str | list[Any]]:
+    """Extract SDK user-message content from an NDJSON stdin stream.
+
+    Claude Code's ``--input-format stream-json`` consumes one SDK message per
+    line. Hare currently handles the user-message part of that protocol: every
+    accepted line becomes a turn on the same ``HareClient`` conversation.
+    """
+    prompts: list[str | list[Any]] = []
+    for line_number, raw_line in enumerate(data.splitlines(), start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            payload = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid stream-json input on line {line_number}: {exc.msg}"
+            ) from exc
+        if not isinstance(payload, dict) or payload.get("type") != "user":
+            raise ValueError(
+                f"Invalid stream-json input on line {line_number}: expected a user message"
+            )
+        message = payload.get("message")
+        if not isinstance(message, dict) or message.get("role") != "user":
+            raise ValueError(
+                f"Invalid stream-json input on line {line_number}: "
+                "message.role must be 'user'"
+            )
+        content = message.get("content")
+        if isinstance(content, str):
+            if not content.strip():
+                continue
+            prompts.append(content)
+        elif isinstance(content, list) and content:
+            prompts.append(content)
+        else:
+            raise ValueError(
+                f"Invalid stream-json input on line {line_number}: "
+                "message.content must be non-empty text or content blocks"
+            )
+    if not prompts:
+        raise ValueError("No user messages received from stream-json stdin")
+    return prompts
+
+
+async def _iter_stream_json_input(
+    stream: TextIO,
+) -> AsyncIterator[str | list[Any]]:
+    """Yield SDK user messages as NDJSON lines arrive, without waiting for EOF."""
+    saw_prompt = False
+    line_number = 0
+    while True:
+        raw_line = await asyncio.to_thread(stream.readline)
+        if raw_line == "":
+            break
+        line_number += 1
+        if not raw_line.strip():
+            continue
+        try:
+            prompts = _parse_stream_json_input(raw_line)
+        except ValueError as exc:
+            detail = str(exc).replace("line 1", f"line {line_number}")
+            raise ValueError(detail) from exc
+        for prompt in prompts:
+            saw_prompt = True
+            yield prompt
+    if not saw_prompt:
+        raise ValueError("No user messages received from stream-json stdin")
+
+
+async def _iterate_print_prompts(
+    prompt: str | list[Any] | None,
+    prompt_stream: AsyncIterable[str | list[Any]] | None,
+) -> AsyncIterator[tuple[int, str | list[Any]]]:
+    index = 0
+    if prompt is not None:
+        yield index, prompt
+        index += 1
+    if prompt_stream is not None:
+        async for streamed_prompt in prompt_stream:
+            yield index, streamed_prompt
+            index += 1
+
+
+def _prompt_is_empty(prompt: str | list[Any] | None) -> bool:
+    if prompt is None:
+        return True
+    if isinstance(prompt, str):
+        return not prompt.strip()
+    return not prompt

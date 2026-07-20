@@ -41,6 +41,8 @@ ALIGNED_EVIDENCE = {
     "cli.--allowed-tools": "permission.allowed_tools_bash",
     "cli.--disallowed-tools": "permission.disallowed_tools_write",
     "cli.--model": "cli.model_flag",
+    "cli.--output-format": "chat.stream_json,stream_json_tools.read",
+    "cli.--input-format": "cli.input_format_stream_json",
     "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
     "hook.PostToolUse": "hooks.posttool_output",
     "hook.Stop": "hooks.stop_hook",
@@ -140,6 +142,11 @@ def extract_cli_features() -> list[tuple[str, str]]:
             name = match.group("spec").strip().split(maxsplit=1)[0]
             if name and not name.startswith("-"):
                 commands.add(name)
+
+    # The pinned 2.1.209 oracle exposes this SDK-facing option, while the
+    # older recovered source snapshot used for static extraction predates it.
+    # Keep the live matrix aligned with the actual compatibility target.
+    options.add("--input-format")
 
     rows: list[tuple[str, str]] = []
     for option in sorted(options):

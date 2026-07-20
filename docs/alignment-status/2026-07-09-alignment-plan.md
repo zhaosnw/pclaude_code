@@ -7,27 +7,27 @@
 这意味着两件事同时成立：
 
 1. **行为对齐可证明。** 每一块已声明对齐的功能，都有 golden E2E case（正式版 oracle 录制的 golden）作为证据。
-2. **对齐进度可度量。** parity matrix（5 维度、206 行）每项标注 `aligned` / `implemented-unverified`，能回答"离完成度还有多少"。
+2. **对齐进度可度量。** parity matrix（5 维度、207 行）每项标注 `aligned` / `implemented-unverified`，能回答"离完成度还有多少"。
 
 ## 当前状态（2026-07-20）
 
 ### 验证基线
 
 ```bash
-python -m pytest tests/e2e -q              # 95 passed, 1 xfailed
-python -m pytest tests/ -q                 # 2903 passed, 12 skipped, 1 xfailed
-make mypy-regression                       # PASS (497)
+python -m pytest tests/e2e -q              # 96 passed, 1 xfailed
+python -m pytest tests/ -q                 # 2911 passed, 12 skipped, 1 xfailed
+make mypy-regression                       # FAIL: 520 vs declared baseline 497（见阶段 7）
 make alignment-guardrails                  # 16 passed
 make dogfood                               # 5/5 passed
-make parity-matrix                         # passed (206 rows, 28 aligned)
+make parity-matrix                         # passed (207 rows, 30 aligned)
 ```
 
 ### 对齐覆盖
 
-- **65 个 golden case**（含 2026-07-19 新增的 `permission.allowed_tools_bash`、`permission.disallowed_tools_write`，2026-07-20 新增的 `cli.model_flag`），覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
-- **67 个已录制 case**（2 个删掉的退化和 2 个录好但被记录分歧，合计 67）
+- **66 个通过的 golden case**（2026-07-20 新增 `cli.input_format_stream_json`），覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
+- **68 个已录制 case**
 - **1 个 registered divergence**（known_divergence）：`subagent.async_dispatch`（num_turns 差 1）
-- **parity matrix 206 行，5 维度**：CLI(117) + tool(44) + hook(27) + settings(8) + behavior(10)；28 项 `aligned`
+- **parity matrix 207 行，5 维度**：CLI(118) + tool(44) + hook(27) + settings(8) + behavior(10)；30 项 `aligned`
 
 ### Oracle
 
@@ -38,7 +38,7 @@ make parity-matrix                         # passed (206 rows, 28 aligned)
 
 | 轴 | 状态 | case 数 |
 |---|---|---|
-| CLI flags（`-p` 管道、`--resume`/`--continue`、`--permission-mode`、`--mcp-config`、`--settings`、`--max-turns`、`--model`） | ✅ 1 xfailed | 13 |
+| CLI flags（`-p` 管道、`--resume`/`--continue`、`--permission-mode`、`--mcp-config`、`--settings`、`--max-turns`、`--model`、stream-json 输入/输出） | ✅ 1 xfailed | 14 |
 | session persistence | ✅ | 4 |
 | permission modes × settings（allow / deny / bypass / 优先级 / 重定向 / `--allowed-tools` / `--disallowed-tools`） | ✅ | 9 |
 | hooks（工具/会话/压缩生命周期全部 10 个 P1 事件） | ✅ | 8 |
@@ -88,7 +88,7 @@ make parity-matrix                         # passed (206 rows, 28 aligned)
 | permission modes × settings | ✅ 7 case |
 | hooks（PreToolUse/PostToolUse/Stop/SessionStart/End/PromptSubmit/SubagentStop/Failure/PreCompact/PostCompact） | ✅ 8 case |
 | MCP | ✅ 2 case |
-| CLI 输出补漏 | ✅（-p stdin 管道、--settings） |
+| CLI 输入/输出补漏 | ✅（-p stdin 管道、--settings、stream-json 输入/输出） |
 | compact / auto-compact | ✅ 1 case（正式版 print 模式不压缩） |
 | subagent / Agent | ✅ 2 case（同步对齐 + 异步 divergence） |
 
@@ -100,11 +100,11 @@ make parity-matrix                         # passed (206 rows, 28 aligned)
 
 ## 阶段 4b：剩余覆盖（建议优先级）
 
-当前 178 项 `implemented-unverified` 的分布（2026-07-19：`cli.--allowed-tools`、`cli.--disallowed-tools` 转为 `aligned`，181→179；2026-07-20：`cli.--model` 转为 `aligned`，179→178）：
+当前 177 项 `implemented-unverified` 的分布（2026-07-19：`cli.--allowed-tools`、`cli.--disallowed-tools` 转为 `aligned`，181→179；2026-07-20：`cli.--model` 转为 `aligned`，179→178；stream-json 输入/输出补齐后 178→177，同时将 2.1.209 新增的 `--input-format` 纳入矩阵）：
 
 | 维度 | 未验证 | 大项 |
 |---|---|---|
-| CLI | 112 | 大部分是 P1 flag，code agent 主链路不依赖 |
+| CLI | 111 | 大部分是 P1 flag，code agent 主链路不依赖 |
 | tool | 36 | MoveTool、PowerShellTool 等非核心工具 |
 | hook | 18 | 17 个 P2 事件（UI/遥测/任务管理、不触发） |
 | settings | 5 | env、model 等 |
@@ -113,7 +113,7 @@ make parity-matrix                         # passed (206 rows, 28 aligned)
 建议优先级：
 
 1. **`chat.whitespace_result` / `chat.empty_text` 已删除，无需再补**。
-2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。~~`--allowed-tools`/`--disallowed-tools`（已有探针结果）~~ ✅ 2026-07-19 已补齐；~~`--model`（验证 flag 穿透到模型）~~ ✅ 2026-07-20 已补齐（均见阶段 5）。剩余示例高价值：`--output-format stream-json` + 输入侧。
+2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。~~`--allowed-tools`/`--disallowed-tools`（已有探针结果）~~ ✅ 2026-07-19 已补齐；~~`--model`（验证 flag 穿透到模型）~~ ✅ 2026-07-20 已补齐；~~`--output-format stream-json` + `--input-format stream-json`~~ ✅ 2026-07-20 已补齐（均见阶段 5）。
 3. **P2 hooks 整体跳过**，直到有人报告差异。
 4. **Tool schema 字段对齐**——当前只覆盖了工具名，没覆盖 input schema 的字段级对比。
 5. **新发现（2026-07-20，未修）：hare 的默认 haiku 模型版本落后于 oracle**——`get_default_haiku_model()` 硬编码 `claude-haiku-4-20250414`，oracle 2.1.209 的 `--model haiku` 实际解析到 `claude-haiku-4-5-20251001`。sonnet/opus 是否也过期未查。修的话要一并核对定价表联动，暂列 P2，见阶段 5「已清偿」`cli.model_flag` 条目下的记录。
@@ -197,6 +197,14 @@ make parity-matrix                         # passed (206 rows, 28 aligned)
 - `scripts/gen_parity_matrix.py`：`ALIGNED_EVIDENCE` 新增 `cli.--model`→`cli.model_flag`。
 - 验证：`tests/e2e` 94→95 passed；`tests/` 2902→2903；`make mypy-regression`/`alignment-guardrails`/`parity-matrix --check`/`detect_stubs`/`dogfood` 全过。parity matrix：179→178 项 `implemented-unverified`，27→28 项 `aligned`。
 
+**2026-07-20 阶段 4b：stream-json 输入/输出补齐为 `aligned`：**
+
+- 新增正式版 oracle case `cli.input_format_stream_json`：以 SDK user-message NDJSON 从 stdin 输入 `say hello`，同时使用 `--output-format stream-json --verbose`，固定 fixture 下参考实现与 hare 的 init / assistant / result 稳定结构一致。已有 `chat.stream_json` 与 `stream_json_tools.read` 继续作为输出侧（含工具调用）的差分证据。
+- 差分先证明了一个真实缺口：hare 的 argparse 原先完全没有 `--input-format`，同一 case 直接以 exit 2 报 `unrecognized arguments`。现已补上 `text` / `stream-json` 参数、输入输出格式组合校验、SDK user-message NDJSON 的逐行异步消费，以及同一 `HareClient` / resumed `QueryEngine` 内多条 user turn 的顺序执行；第二条起过滤重复的 `system.init`，保持单一流会话语义。
+- 新增 `tests/test_stream_json_input.py`，覆盖多条 user turn、content blocks、坏 JSON、非 user 消息、空输入、格式组合约束，以及 stdin 尚未 EOF 时必须先返回 result 的真实长连接协议（防止退化成先 `read()` 到 EOF、让 SDK 双方互等的死锁）。`scripts/gen_parity_matrix.py` 同时把 2.1.209 已有、但旧 recovered 静态源码快照尚未包含的 `--input-format` 纳入 inventory。
+- parity matrix：206→207 行；`cli.--input-format`→`cli.input_format_stream_json`、`cli.--output-format`→`chat.stream_json,stream_json_tools.read`；178→177 项 `implemented-unverified`，28→30 项 `aligned`。
+- 验证：`tests/e2e` 95→96 passed（1 xfailed）；`tests/` 2903→2911 passed（12 skipped，1 xfailed）；`alignment-guardrails` 16 passed；`parity-matrix --check`、stub 门、dogfood 5/5 均通过。`mypy-regression` 在当前环境为 520 vs declared baseline 497；用独立 `git archive HEAD` 和 baseline commit `4b492ab9` 的干净副本复跑，两者同样都是 520，且本轮修改的 `hare/main.py` 只有原已存在的 unreachable 报错，未新增 mypy diagnostic，因此登记为既有门禁基线问题，不通过抬高 baseline 掩盖。
+
 ### 待修（来自 2026-07-16 代码审查，按优先级）
 
 P0、P1、P2 共 11 条已全部清偿（P2 三条于 2026-07-19 清偿，见上「已清偿」）。
@@ -224,7 +232,7 @@ P0、P1、P2 共 11 条已全部清偿（P2 三条于 2026-07-19 清偿，见上
 
 ## 阶段 7：mypy（只保门）
 
-当前基线 `497`，`make mypy-regression` 持续通过。主动清偿排在功能对齐之后。
+声明基线仍为 `497`，不抬高。2026-07-20 在当前 Python 3.12.7 / mypy 1.11.2 环境实测为 `520`；当前 `HEAD`、独立 `git archive HEAD`、以及当初仅把 baseline 从 520 改成 497 的 commit `4b492ab9` 干净副本均复现 520，说明不是本轮 stream-json 改动引入。该门当前真实状态为 FAIL，后续需要单独校准当时生成 497 的环境/命令或清偿差额；主动大规模清偿仍排在功能对齐之后。
 
 ## 阶段 8：收口检查
 
@@ -250,7 +258,8 @@ python scripts/detect_stubs.py
 
 **主线 B：按需补覆盖**
 - 不在 CLI flag 上消耗大量时间。按需补：发现 bug 时补 case + 修；受报告驱动的 flag 做 golden。
-- 高价值：`--output-format stream-json` 输入侧、`--input-format stream-json`。
+- ~~高价值：`--output-format stream-json` 输入侧、`--input-format stream-json`。~~ ✅ 2026-07-20 已完成。
+- 下一项高价值覆盖：Tool input schema 字段级对比（当前 golden 主要证明工具名和执行效果，尚未系统比较 schema）。
 
 ## 暂停点（新增）
 
@@ -267,4 +276,4 @@ python scripts/detect_stubs.py
 
 2026-07-16 审查的 19 条发现中 P0（4条，commit `830c5a80`/`462f573c`/`405250e6`）、P1（4条，commit `677eb5f3`/`90e8f910`/`6aad1afb`/`6d4d05f0`/`26ede65f`）、P2（3条，2026-07-19，见「已清偿」）均已清偿，P1b 3 条判定当前无需修。2026-07-19 对 P0+P1 完整 diff（`8db2fefd..3c36f94d`）的合入前复审也已通过，无新正确性缺陷。
 
-当前没有已知的阻塞性问题。下一步工作转向阶段 4b 的「按需补覆盖」（不主动对齐全部 CLI flag，发现 bug 或做特征时再补 golden case）——参见「建议执行顺序（续）」的主线 B。若之后再有代码审查发现新的问题，按同样的模式处理：每条修复配一个可复跑的回归测试（放在 canonical `tests/`，不要放 `hare/tests/`），过 spec-reviewer + code-quality-reviewer 两阶段审查，再跑 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails`，多条一起改时补 `make dogfood`。
+当前没有已知的功能阻塞；门禁层面保留阶段 7 的 mypy baseline 问题。stream-json 输入/输出已经补齐；下一步转向 Tool input schema 字段级对比，或继续阶段 4b 的受报告驱动覆盖（不主动穷举全部 CLI flag）——参见「建议执行顺序（续）」的主线 B。若之后再有代码审查发现新的问题，按同样的模式处理：每条修复配一个可复跑的回归测试（放在 canonical `tests/`，不要放 `hare/tests/`），过 spec-reviewer + code-quality-reviewer 两阶段审查，再跑 `python -m pytest tests/e2e -q && python -m pytest tests/ -q && make mypy-regression && make alignment-guardrails`，多条一起改时补 `make dogfood`。
