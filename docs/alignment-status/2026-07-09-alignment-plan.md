@@ -1,4 +1,4 @@
-# Hare Alignment Plan（2026-07-19 更新版）
+# Hare Alignment Plan（2026-07-20 更新版）
 
 ## 目标
 
@@ -9,25 +9,25 @@
 1. **行为对齐可证明。** 每一块已声明对齐的功能，都有 golden E2E case（正式版 oracle 录制的 golden）作为证据。
 2. **对齐进度可度量。** parity matrix（5 维度、206 行）每项标注 `aligned` / `implemented-unverified`，能回答"离完成度还有多少"。
 
-## 当前状态（2026-07-19）
+## 当前状态（2026-07-20）
 
 ### 验证基线
 
 ```bash
-python -m pytest tests/e2e -q              # 94 passed, 1 xfailed
-python -m pytest tests/ -q                 # 2902 passed, 12 skipped, 1 xfailed
+python -m pytest tests/e2e -q              # 95 passed, 1 xfailed
+python -m pytest tests/ -q                 # 2903 passed, 12 skipped, 1 xfailed
 make mypy-regression                       # PASS (497)
 make alignment-guardrails                  # 16 passed
 make dogfood                               # 5/5 passed
-make parity-matrix                         # passed (206 rows, 27 aligned)
+make parity-matrix                         # passed (206 rows, 28 aligned)
 ```
 
 ### 对齐覆盖
 
-- **64 个 golden case**（含 2026-07-19 新增的 `permission.allowed_tools_bash`、`permission.disallowed_tools_write`），覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
-- **66 个已录制 case**（2 个删掉的退化和 2 个录好但被记录分歧，合计 66）
+- **65 个 golden case**（含 2026-07-19 新增的 `permission.allowed_tools_bash`、`permission.disallowed_tools_write`，2026-07-20 新增的 `cli.model_flag`），覆盖 chat / cli / hooks / json / limits / mcp / permission / session / stream_json_tools / subagent / tools / compact / behavior
+- **67 个已录制 case**（2 个删掉的退化和 2 个录好但被记录分歧，合计 67）
 - **1 个 registered divergence**（known_divergence）：`subagent.async_dispatch`（num_turns 差 1）
-- **parity matrix 206 行，5 维度**：CLI(117) + tool(44) + hook(27) + settings(8) + behavior(10)；27 项 `aligned`
+- **parity matrix 206 行，5 维度**：CLI(117) + tool(44) + hook(27) + settings(8) + behavior(10)；28 项 `aligned`
 
 ### Oracle
 
@@ -38,7 +38,7 @@ make parity-matrix                         # passed (206 rows, 27 aligned)
 
 | 轴 | 状态 | case 数 |
 |---|---|---|
-| CLI flags（`-p` 管道、`--resume`/`--continue`、`--permission-mode`、`--mcp-config`、`--settings`、`--max-turns`） | ✅ 1 xfailed | 12 |
+| CLI flags（`-p` 管道、`--resume`/`--continue`、`--permission-mode`、`--mcp-config`、`--settings`、`--max-turns`、`--model`） | ✅ 1 xfailed | 13 |
 | session persistence | ✅ | 4 |
 | permission modes × settings（allow / deny / bypass / 优先级 / 重定向 / `--allowed-tools` / `--disallowed-tools`） | ✅ | 9 |
 | hooks（工具/会话/压缩生命周期全部 10 个 P1 事件） | ✅ | 8 |
@@ -100,11 +100,11 @@ make parity-matrix                         # passed (206 rows, 27 aligned)
 
 ## 阶段 4b：剩余覆盖（建议优先级）
 
-当前 179 项 `implemented-unverified` 的分布（2026-07-19：`cli.--allowed-tools`、`cli.--disallowed-tools` 已用 `permission.allowed_tools_bash`/`permission.disallowed_tools_write` 两个新 golden case 转为 `aligned`，181→179）：
+当前 178 项 `implemented-unverified` 的分布（2026-07-19：`cli.--allowed-tools`、`cli.--disallowed-tools` 转为 `aligned`，181→179；2026-07-20：`cli.--model` 转为 `aligned`，179→178）：
 
 | 维度 | 未验证 | 大项 |
 |---|---|---|
-| CLI | 113 | 大部分是 P1 flag，code agent 主链路不依赖 |
+| CLI | 112 | 大部分是 P1 flag，code agent 主链路不依赖 |
 | tool | 36 | MoveTool、PowerShellTool 等非核心工具 |
 | hook | 18 | 17 个 P2 事件（UI/遥测/任务管理、不触发） |
 | settings | 5 | env、model 等 |
@@ -113,9 +113,10 @@ make parity-matrix                         # passed (206 rows, 27 aligned)
 建议优先级：
 
 1. **`chat.whitespace_result` / `chat.empty_text` 已删除，无需再补**。
-2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。~~`--allowed-tools`/`--disallowed-tools`（已有探针结果）~~ ✅ 2026-07-19 已补齐（见阶段 5）。剩余示例高价值：`--model`（验证 flag 穿透到模型）、`--output-format stream-json` + 输入侧。
+2. **CLI flag 按需补**—不需要全部对齐，只在发现 bug 或做特征时补。~~`--allowed-tools`/`--disallowed-tools`（已有探针结果）~~ ✅ 2026-07-19 已补齐；~~`--model`（验证 flag 穿透到模型）~~ ✅ 2026-07-20 已补齐（均见阶段 5）。剩余示例高价值：`--output-format stream-json` + 输入侧。
 3. **P2 hooks 整体跳过**，直到有人报告差异。
 4. **Tool schema 字段对齐**——当前只覆盖了工具名，没覆盖 input schema 的字段级对比。
+5. **新发现（2026-07-20，未修）：hare 的默认 haiku 模型版本落后于 oracle**——`get_default_haiku_model()` 硬编码 `claude-haiku-4-20250414`，oracle 2.1.209 的 `--model haiku` 实际解析到 `claude-haiku-4-5-20251001`。sonnet/opus 是否也过期未查。修的话要一并核对定价表联动，暂列 P2，见阶段 5「已清偿」`cli.model_flag` 条目下的记录。
 
 ## 阶段 5：行为清偿
 
@@ -186,6 +187,15 @@ make parity-matrix                         # passed (206 rows, 27 aligned)
 - `check_files: true` 给 `disallowed_tools_write` 提供了真实执行证据（原则 8）：录制的 golden 文件快照为空列表，证明 Write 工具确实一次都没跑起来，而不是"文本恰好没提写入"这种弱证据。
 - `scripts/gen_parity_matrix.py`：`ALIGNED_EVIDENCE` 手工映射表新增 `cli.--allowed-tools`→`permission.allowed_tools_bash`、`cli.--disallowed-tools`→`permission.disallowed_tools_write` 两条，`make parity-matrix --check` 通过。`cli.--disallowed`（无 `-tools` 后缀）确认是生成脚本对 TS 源码做正则提取时的伪影，源码里不存在这个真实 flag，未处理。
 - 验证：`tests/e2e` 92→94 passed；`tests/` 2900→2902；`make mypy-regression`/`alignment-guardrails`/`parity-matrix --check`/`detect_stubs`/`dogfood` 全过。parity matrix：181→179 项 `implemented-unverified`，25→27 项 `aligned`。
+
+**2026-07-20 阶段 4b：`--model` 补齐为 `aligned`；顺带发现一条新的模型默认版本缺口（未修，已记录）：**
+
+- 新增 golden case `cli.model_flag`（`--model haiku` + `--output-format stream-json` + 单轮 fixture），录制自 `.oracle/claude-2.1.209`。用 `stdout_kind: "ndjson"` + `json_structural` 匹配核心 result 字段（该策略本就排除 `model`/`modelUsage` 这类版本号易变字段，见 `tests/e2e/test_e2e_cases.py::_stable_result`），另外在 golden.json 手动追加 `stdout_contains: ["\"model\":\"claude-haiku"]` 作为轻量契约检查（`test_e2e_cases.py` 213 行起的 `stdout_contains`/`stderr_contains` 断言，独立于 `policy.match`），验证 `system.init.model` 字段确实随 `--model` flag 变化，而不只是 flag 被解析、从未真正传导到运行时的"假通过"。
+- 排查中发现：hare 的 `hare/utils/model/model_full.py::get_default_haiku_model()` 硬编码返回 `claude-haiku-4-20250414`，而 `--model haiku` 在 oracle（2.1.209）侧解析出的是 `claude-haiku-4-5-20251001`（Haiku 4.5，更新的型号）——两边对"haiku"别名指向的具体版本号不一致。**这是一条新发现、未修的缺口**，登记为 P2（parity matrix 里 `settings.model` 本就是 `implemented-unverified`/P2，属同一批"默认模型版本表需要跟 oracle 同步"的问题）：
+  - 之所以没有让这条不一致影响 `cli.model_flag` case 本身：`json_structural` 天然不比较具体版本号字符串，`stdout_contains` 用的是不含版本号的稳定关键词 `"claude-haiku`，两边都满足。case 验证的是"flag 有没有穿透到运行时"，不是"默认版本号是否最新"——这两件事故意分开验证，避免 case 因为模型例行升级而频繁变脆。
+  - 未验证 sonnet/opus 默认版本是否也过期（没有为此再调用一次 oracle，避免把这个子任务范围继续扩大）；如果以后要修，需要一并检查 `get_default_sonnet_model()`/`get_default_opus_model()`，以及 `calculate_usd_cost` 的定价表是否需要联动更新新版本号的价格。
+- `scripts/gen_parity_matrix.py`：`ALIGNED_EVIDENCE` 新增 `cli.--model`→`cli.model_flag`。
+- 验证：`tests/e2e` 94→95 passed；`tests/` 2902→2903；`make mypy-regression`/`alignment-guardrails`/`parity-matrix --check`/`detect_stubs`/`dogfood` 全过。parity matrix：179→178 项 `implemented-unverified`，27→28 项 `aligned`。
 
 ### 待修（来自 2026-07-16 代码审查，按优先级）
 

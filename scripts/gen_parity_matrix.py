@@ -40,6 +40,7 @@ ALIGNED_EVIDENCE = {
     "cli.--mcp-config": "mcp.stdio_tool_call",
     "cli.--allowed-tools": "permission.allowed_tools_bash",
     "cli.--disallowed-tools": "permission.disallowed_tools_write",
+    "cli.--model": "cli.model_flag",
     "hook.PreToolUse": "hooks.pretool_block,hooks.pretool_allow",
     "hook.PostToolUse": "hooks.posttool_output",
     "hook.Stop": "hooks.stop_hook",
